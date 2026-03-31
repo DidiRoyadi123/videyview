@@ -1,0 +1,125 @@
+{
+  "project_info": {
+    "name": "VideyView",
+    "stack": "Laravel (Backend) + Inertia.js / Vue 3 (Frontend) + Tailwind CSS + XAMPP",
+    "environment": "Windows / PHP 8.2+ / MySQL",
+    "main_url": "http://localhost:8000"
+  },
+  "authentication": {
+    "admin": {
+      "email": "didiroyadi123@gmail.com",
+      "password": "1Nd4hy4n1",
+      "telegram_contact": "@Mandorbuah"
+    },
+    "security_note": "Forgot Password link redirected to Telegram; Admin can reset all passwords via Dashboard."
+  },
+  "key_features": {
+    "video_hosting": [
+      "Local Direct Upload (PC/Device) to storage/app/public/videos",
+      "Manual URL Link for external CDNs (Videy.co, etc.)",
+      "Video Proxy (/video-proxy) to bypass ISP/WAF restrictions on Videy links.",
+      "ISP Bypass Client (App\\Helpers\\IspBypassClient) using CURLOPT_RESOLVE for hosting APIs.",
+      "Fast-Intake Bulk JSON: Process thousands of links via automated background workers."
+    ],
+    "thumbnail_system": {
+      "helper_class": "App\\Helpers\\VideoHelper",
+      "mechanism": "FFmpeg thumbnail extraction on-demand or batch.",
+      "storage_path": "storage/app/public/thumbnails",
+      "naming_convention": "{slug}.jpg",
+      "proxy_route": "/video-thumbnail/{slug}"
+    },
+    "monetization": [
+      "Adsterra Native Banners (Repeating in grids)",
+      "Popunder & Social Bar (Global)",
+      "Rebranded 'Special Offer' button as 'DOWNLOAD VIDEO' (Smartlink integration)",
+      "Subscription System: hasActiveSubscription() for premium content.",
+      "Admin Ad Guard: Internal AdHandler security to prevent ad leakage in Dashboard."
+    ],
+    "anti_adblock": [
+      "Decoy bait scripts (ads-check.js) to trigger detection.",
+      "Server-side script proxy (/assets/js/system-v4.js) for external ad scripts.",
+      "Iframe isolation for repeating banners to prevent layout breakage.",
+      "Base64 encoding and cache-busting for proxied script URLs."
+    ],
+    "automated_distribution_pipeline": {
+      "stages": [
+        "Import: JSON/CSV bulk ingestion sets status to 'pending'.",
+        "Download: background DownloadVideoJob using ISP Resolve for high-speed local intake.",
+        "Mirror: automatic DistributeToHostJob (Streamtape) triggered after local completion."
+      ],
+      "real_time_monitor": "Dynamic dashboard in Index.vue with polling indicators (shimmers/counts)."
+    },
+    "security_masking_proxy_2.0": {
+      "features": [
+        "On-Demand Fetch: Links provided via timed AJAX only upon playback intent.",
+        "Link Masking: No raw cdn.videy.co or streamtape.com URLs in DOM/Network Tab.",
+        "Anti-Inspect: Disabled right-click context menu on player area.",
+        "Local Relay: Serve data via dynamic video-proxy route to hide origin domains."
+      ]
+    },
+    "external_hosting": {
+      "primary": "Streamtape (Hard-mirror driver, optimized for Indonesian ISP bypass).",
+      "secondary": "Disabled to maintain mirroring efficiency and API throughput."
+    }
+  },
+  "external_hosting_credentials": {
+    "streamtape": {
+      "email": "hikmathul123@gmail.com",
+      "password": "1Nd4hy4n1",
+      "api_login": "ba1402c48869ff3f5d71",
+      "api_key": "ZKbxp4w8VjIqxXb",
+      "url": "https://streamtape.com/",
+      "mirror_url": "https://streamtape.to/",
+      "verified_upload_servers": [
+        {
+          "domain": "861520586.tapecontent.net",
+          "ip": "51.89.194.202"
+        },
+        {
+          "domain": "861113552.tapecontent.net",
+          "ip": "51.83.140.208"
+        }
+      ],
+      "active": true
+    }
+  },
+  "important_paths": {
+    "videos": "storage/app/public/videos",
+    "monetization": [
+      "Adsterra Native Banners (Repeating in grids)",
+      "Popunder & Social Bar (Global)",
+      "Rebranded 'Special Offer' button as 'DOWNLOAD VIDEO' (Smartlink integration)",
+      "Subscription System: hasActiveSubscription() for premium content.",
+      "Admin & Premium Ad Guard: Blocks all ad rendering for paid members and admins."
+    ],
+    "member_management": [
+      "Contact Collection: Integrated WA/Telegram field into Registration.",
+      "Admin Dashboard: Privacy-locked contact display and manual member reset.",
+      "Premium Power: Direct 'Grant Premium' logic for manual account upgrades.",
+      "Tiered Promotion: Auto-switch CTAs (Guest -> Channel, Member -> @Mandorbuah)."
+    ],
+    "zero_click_automation": [
+      "Auto-Save Mode: Extracted links are instantly queued for processing.",
+      "Sync Bridge: One-click sync_list.json generation for standalone worker.bat."
+    ],
+    "ad_grid_refinement": [
+      "Native In-Grid Ads: Removed containers, labels, and padding to blend ads with video thumbnails.",
+      "Zero-Gap Strategy: Aligned ad row spacing exactly with main content grid (gap-8).",
+      "Mobile Optimization: Reduced grid gap from gap-8 to gap-4 on small screens for better density."
+    ],
+    "security_auth_audit": [
+      "Telegram Bypass: Redirected all forgot-password/reset-password routes to @Mandorbuah.",
+      "Desktop Logout: Added dedicated Sign Out button to header for one-click access.",
+      "Guest Lock: Implemented 'Discussion Locked' UI in Show.vue for guest users."
+    ]
+  },
+  "maintenance_logs_current": [
+    "Finalized Member-to-Database Pipeline (Contact Info + Auth Security).",
+    "Implemented Tiered Access Restrictions: Premium lock and Guest comment block.",
+    "Integrated Zero-Click Automation for Extractor-to-Queue Intake.",
+    "Deployed Standalone Sync Manifest Bridge for Offline Download Support.",
+    "Refined Ad Aesthetics: Transitioned repeating banners into a seamless 'Native Grid' layout.",
+    "Comprehensive Audit: Verified all 4 user tiers (Admin, Premium, Free, Guest).",
+    "Mobile Polish: Optimized grid spacing and player layout for smartphone devices."
+  ]
+}
