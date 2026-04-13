@@ -37,7 +37,7 @@ class MultiHostService
     /**
      * Update the hosting status and mirror link for a video in a single atomic operation.
      */
-    public function updateStatus(Video $video, string $host, string $status, ?array $data = null): void
+    public function updateStatus(Video $video, string $host, string $status, $data = null): void
     {
         // Refresh to ensure we have the absolute latest state before updating
         $video = $video->fresh();

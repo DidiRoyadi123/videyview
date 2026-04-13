@@ -19,9 +19,12 @@ class SettingController extends Controller
             'ad_banner_300x250' => Setting::getValue('ad_banner_300x250', ''),
             'ad_smartlink' => Setting::getValue('ad_smartlink', ''),
             'ad_popunder' => Setting::getValue('ad_popunder', ''),
+            'streamtape_login' => Setting::getValue('streamtape_login', ''),
+            'streamtape_key' => Setting::getValue('streamtape_key', ''),
+            'doodstream_login' => Setting::getValue('doodstream_login', ''),
+            'doodstream_key' => Setting::getValue('doodstream_key', ''),
+            'anti_adblock_enabled' => Setting::getValue('anti_adblock_enabled', '1'),
         ];
-
-        \Illuminate\Support\Facades\Log::info('Loaded settings for admin:', $settings);
 
         return Inertia::render('Admin/Settings', [
             'settings' => $settings
@@ -30,17 +33,18 @@ class SettingController extends Controller
 
     public function update(Request $request)
     {
-        $settings = $request->all();
+        $settings = $request->except(['_is_encoded']);
         $isEncoded = $request->input('_is_encoded', false);
 
         foreach ($settings as $key => $value) {
-            if (str_starts_with($key, 'ad_')) {
-                $finalValue = $value;
-                if ($isEncoded && $key !== 'ad_smartlink' && $value) {
-                    $finalValue = base64_decode($value);
-                }
-                Setting::setValue($key, $finalValue);
+            $finalValue = $value;
+            
+            // Apply base64 decoding for encoded AD scripts if needed
+            if ($isEncoded && str_starts_with($key, 'ad_') && $key !== 'ad_smartlink' && $value) {
+                $finalValue = base64_decode($value);
             }
+            
+            Setting::setValue($key, $finalValue);
         }
 
         return back()->with('success', 'Settings updated successfully.');

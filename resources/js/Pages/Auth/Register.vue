@@ -24,16 +24,16 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Create Account" />
+        <Head title="Buat Akun" />
 
         <div class="mb-8 overflow-hidden">
-            <h2 class="text-2xl font-black text-white italic uppercase tracking-tighter">Join VideyView</h2>
-            <p class="text-slate-500 text-sm font-medium mt-1">Start your journey with premium streaming today.</p>
+            <h2 class="text-2xl font-black text-white italic uppercase tracking-tighter">Bergabung dengan VideyView</h2>
+            <p class="text-slate-500 text-sm font-medium mt-1">Mulai perjalanan Anda dengan streaming premium hari ini.</p>
         </div>
 
         <form @submit.prevent="submit" class="space-y-5">
             <div>
-                <InputLabel for="name" value="Full Name" class="!text-slate-400 !text-[10px] !font-black !uppercase !tracking-widest mb-1" />
+                <InputLabel for="name" value="Nama Lengkap" class="!text-slate-400 !text-[10px] !font-black !uppercase !tracking-widest mb-1" />
 
                 <TextInput
                     id="name"
@@ -50,7 +50,7 @@ const submit = () => {
             </div>
 
             <div>
-                <InputLabel for="whatsapp_telegram" value="WhatsApp or Telegram" class="!text-slate-400 !text-[10px] !font-black !uppercase !tracking-widest mb-1" />
+                <InputLabel for="whatsapp_telegram" value="WhatsApp atau Telegram" class="!text-slate-400 !text-[10px] !font-black !uppercase !tracking-widest mb-1" />
 
                 <TextInput
                     id="whatsapp_telegram"
@@ -65,7 +65,7 @@ const submit = () => {
             </div>
 
             <div>
-                <InputLabel for="email" value="Email Address" class="!text-slate-400 !text-[10px] !font-black !uppercase !tracking-widest mb-1" />
+                <InputLabel for="email" value="Alamat Email" class="!text-slate-400 !text-[10px] !font-black !uppercase !tracking-widest mb-1" />
 
                 <TextInput
                     id="email"
@@ -81,7 +81,7 @@ const submit = () => {
             </div>
 
             <div>
-                <InputLabel for="password" value="Password" class="!text-slate-400 !text-[10px] !font-black !uppercase !tracking-widest mb-1" />
+                <InputLabel for="password" value="Kata Sandi" class="!text-slate-400 !text-[10px] !font-black !uppercase !tracking-widest mb-1" />
 
                 <PasswordInput
                     id="password"
@@ -98,7 +98,7 @@ const submit = () => {
             <div>
                 <InputLabel
                     for="password_confirmation"
-                    value="Confirm Password"
+                    value="Konfirmasi Kata Sandi"
                     class="!text-slate-400 !text-[10px] !font-black !uppercase !tracking-widest mb-1"
                 />
 
@@ -123,14 +123,14 @@ const submit = () => {
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
-                    CREATE ACCOUNT
+                    BUAT AKUN
                 </PrimaryButton>
             </div>
 
             <div class="text-center pt-2">
                 <p class="text-xs font-bold text-slate-600">
-                    Already have an account? 
-                    <Link :href="route('login')" class="text-indigo-400 hover:text-indigo-300 transition uppercase tracking-widest ms-1">Sign In</Link>
+                    Sudah memiliki akun? 
+                    <Link :href="route('login')" class="text-indigo-400 hover:text-indigo-300 transition uppercase tracking-widest ms-1">Masuk</Link>
                 </p>
             </div>
         </form>

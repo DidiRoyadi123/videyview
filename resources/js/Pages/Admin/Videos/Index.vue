@@ -1,5 +1,5 @@
 <script setup>
-import { useForm, router } from '@inertiajs/vue3';
+import { useForm, router, usePage, Head } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -41,11 +41,17 @@ const toggleProxy = () => {
 };
 
 const downloadProgress = ref({});
+const uploadProgress = ref({});
 const activeDownloads = ref(props.total_active_downloads || 0);
 const activeMirrors = ref(props.total_active_mirrors || 0);
 const localReady = ref(props.total_local || 0);
 const mirroredTotal = ref(props.total_mirrored || 0);
 const downloadPendingTotal = ref(props.total_download_pending || 0);
+const hostStats = ref(props.host_stats || { streamtape: 0, doodstream: 0 });
+const recentActivityList = ref(props.recent_activity || []);
+
+const averageDownloadProgress = ref(0);
+const averageUploadProgress = ref(0);
 
 const uploadType = ref('url');
 
@@ -234,12 +240,64 @@ const downloadSyncManifest = () => {
     window.location.href = route('admin.videos.export-sync');
 };
 
+const runHealthCheck = () => {
+    if (confirm('Run health check for all videos? This will dispatch background jobs to verify file availability.')) {
+        router.post(route('admin.videos.check-health'), {}, {
+            preserveScroll: true,
+            onSuccess: () => toastSuccess('Health check jobs dispatched.')
+        });
+    }
+};
+
 const distributeVideo = (id, host = null) => {
     router.post(route('admin.videos.distribute', id), { host }, {
         preserveScroll: true,
         onSuccess: () => {
             toastSuccess('Mirroring job dispatched.');
         }
+    });
+};
+
+const copyMaskedLink = (video) => {
+    const maskedUrl = `${window.location.origin}/v/${video.slug}.mp4`;
+    navigator.clipboard.writeText(maskedUrl).then(() => {
+        toastSuccess('Masked link copied to clipboard!');
+    }).catch(err => {
+        toastError('Failed to copy link.');
+        console.error(err);
+    });
+};
+
+const exportSocialLinks = (all = false) => {
+    const ids = all ? [] : selectedIds.value;
+    
+    toastSuccess(all ? 'Generating ALL video links...' : 'Generating selected video links...');
+    
+    axios.post(route('admin.videos.export-social'), { ids, export_all: all }, {
+        responseType: 'blob'
+    }).then((response) => {
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        
+        // Extract filename from content-disposition if possible, else default
+        const contentDisposition = response.headers['content-disposition'];
+        let fileName = `Social_Links_Export_${new Date().toISOString().slice(0,10)}.csv`;
+        if (contentDisposition) {
+            const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
+            if (fileNameMatch && fileNameMatch.length === 2) fileName = fileNameMatch[1];
+        }
+        
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        
+        toastSuccess('Export completed!');
+    }).catch((err) => {
+        toastError('Failed to generate export.');
+        console.error('Export error:', err);
     });
 };
 
@@ -298,41 +356,57 @@ const startPollingProgress = () => {
             )
             .map(v => v.id);
             
-        if (activeIds.length > 0) {
-            try {
-                const response = await axios.get(route('admin.videos.progress'), {
-                    params: { ids: activeIds }
-                });
-                
-                if (response.data.progress) {
-                    downloadProgress.value = { ...downloadProgress.value, ...response.data.progress };
-                }
-
-                if (response.data.mirroring) {
-                    Object.entries(response.data.mirroring).forEach(([id, status]) => {
-                        const video = props.videos.data.find(v => v.id == id);
-                        if (video) video.hosting_status = status;
-                    });
-                }
-
-                if (response.data.global_stats) {
-                    activeDownloads.value = response.data.global_stats.total_active_downloads;
-                    activeMirrors.value = response.data.global_stats.total_active_mirrors;
-                    localReady.value = response.data.global_stats.total_local;
-                    mirroredTotal.value = response.data.global_stats.total_mirrored;
-                }
-                
-                const finishedDownloadIds = Object.entries(response.data.progress || {})
-                    .filter(([id, p]) => p >= 100)
-                    .map(([id]) => id);
-                    
-                if (finishedDownloadIds.length > 0) {
-                    toastSuccess(`${finishedDownloadIds.length} video(s) completed downloading!`);
-                    router.reload({ only: ['videos'] });
-                }
-            } catch (error) {
-                console.error("Failed to fetch progress", error);
+        try {
+            const response = await axios.get(route('admin.videos.progress'), {
+                params: { ids: activeIds }
+            });
+            
+            if (response.data.progress) {
+                downloadProgress.value = { ...downloadProgress.value, ...response.data.progress };
             }
+            if (response.data.uploadProgress) {
+                uploadProgress.value = { ...uploadProgress.value, ...response.data.uploadProgress };
+            }
+
+            if (response.data.mirroring) {
+                Object.entries(response.data.mirroring).forEach(([id, status]) => {
+                    const video = props.videos.data.find(v => v.id == id);
+                    if (video) video.hosting_status = status;
+                });
+            }
+
+            if (response.data.global_stats) {
+                activeDownloads.value = response.data.global_stats.total_active_downloads;
+                activeMirrors.value = response.data.global_stats.total_active_mirrors;
+                localReady.value = response.data.global_stats.total_local;
+                mirroredTotal.value = response.data.global_stats.total_mirrored;
+                downloadPendingTotal.value = response.data.global_stats.total_download_pending || 0;
+                
+                if (response.data.global_stats.global_download_avg !== undefined) {
+                    averageDownloadProgress.value = response.data.global_stats.global_download_avg;
+                }
+                if (response.data.global_stats.global_upload_avg !== undefined) {
+                    averageUploadProgress.value = response.data.global_stats.global_upload_avg;
+                }
+                if (response.data.global_stats.host_stats) {
+                    hostStats.value = response.data.global_stats.host_stats;
+                }
+            }
+
+            if (response.data.recent_activity) {
+                recentActivityList.value = response.data.recent_activity;
+            }
+            
+            const finishedDownloadIds = Object.entries(response.data.progress || {})
+                .filter(([id, p]) => p >= 100)
+                .map(([id]) => id);
+                
+            if (finishedDownloadIds.length > 0) {
+                toastSuccess(`${finishedDownloadIds.length} video(s) completed downloading!`);
+                router.reload({ only: ['videos'] });
+            }
+        } catch (error) {
+            console.error("Failed to fetch progress", error);
         }
     }, 3000);
 };
@@ -342,148 +416,165 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
 </script>
 
 <template>
-    <Head title="Admin - Video Management" />
+    <Head title="Admin - Manajemen Video" />
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-3xl font-black text-white italic uppercase tracking-tighter">Video Management</h2>
+            <div class="flex items-center justify-between flex-wrap gap-6">
                 <div class="flex items-center gap-4">
+                    <div class="w-2 h-10 bg-indigo-600 rounded-full"></div>
+                    <h2 class="text-3xl font-black text-[rgb(var(--text-main))] italic uppercase tracking-tighter">Brankas <span class="text-indigo-600">Video</span></h2>
+                </div>
+                <div class="flex items-center gap-3 flex-wrap">
                     <button 
                         @click="downloadSyncManifest"
-                        class="px-4 py-1.5 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 text-[10px] font-black uppercase tracking-widest rounded-xl border border-cyan-600/30 transition-all flex items-center gap-2 group"
+                        class="px-5 py-2.5 bg-indigo-500/5 hover:bg-indigo-600/10 text-indigo-600 text-[10px] font-black uppercase tracking-widest rounded-2xl border border-indigo-500/20 transition-all flex items-center gap-2 group shadow-inner"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:translate-y-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        Download Sync Manifest
+                        Ekspor Manifes
                     </button>
-                    <div class="bg-indigo-500/10 px-4 py-1 rounded-full border border-indigo-500/20">
-                        <span class="text-[10px] font-black uppercase text-indigo-400 tracking-widest">{{ videos.total }} Total Videos</span>
+                    <button 
+                        @click="runHealthCheck"
+                        class="px-5 py-2.5 bg-emerald-500/5 hover:bg-emerald-600/10 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-2xl border border-emerald-500/20 transition-all flex items-center gap-2 group shadow-inner"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:rotate-180 transition-transform duration-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04c0 4.833 1.807 9.242 4.798 12.584a11.11 11.11 0 0011.64 0c2.991-3.342 4.798-7.751 4.798-12.584z" />
+                        </svg>
+                        Audit Kesehatan
+                    </button>
+                    <div class="bg-indigo-500/10 px-5 py-2 rounded-full border border-indigo-500/20 shadow-inner">
+                        <span class="text-[10px] font-black uppercase text-indigo-600 tracking-widest">{{ videos.total }} Terdaftar</span>
                     </div>
                 </div>
             </div>
         </template>
 
         <div class="py-12">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
                 <!-- Add Video & Bulk Upload Grid -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <!-- Manual Upload -->
-                    <div class="lg:col-span-2 glass-dark p-8 rounded-[2rem] border border-white/5">
-                        <div class="flex items-center gap-6 mb-8">
-                            <h3 class="text-xl font-black text-white flex items-center gap-3">
-                                <span class="w-2 h-8 bg-indigo-500 rounded-full"></span>
-                                Quick Upload
+                    <div class="lg:col-span-2 glass shadow-royale p-10 rounded-[3rem] border border-[rgb(var(--border-main))]">
+                        <div class="flex items-center gap-6 mb-10 overflow-x-auto no-scrollbar">
+                            <h3 class="text-xl font-black text-[rgb(var(--text-main))] flex items-center gap-4 uppercase tracking-tighter shrink-0">
+                                <span class="w-2 h-8 bg-indigo-600 rounded-full"></span>
+                                Masukan
                             </h3>
-                            <div class="flex bg-white/5 p-1 rounded-xl border border-white/10">
+                            <div class="flex bg-[rgb(var(--bg-input))] p-1.5 rounded-2xl border border-[rgb(var(--border-main))] shadow-inner shrink-0">
                                 <button 
                                     @click="uploadType = 'url'"
-                                    :class="uploadType === 'url' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-300'"
-                                    class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition"
+                                    :class="uploadType === 'url' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-[rgb(var(--text-muted))] hover:text-indigo-500'"
+                                    class="px-6 py-2 rounded-[14px] text-[10px] font-black uppercase tracking-widest transition-all"
                                 >
-                                    Link URL
+                                    URL Jarak Jauh
                                 </button>
                                 <button 
                                     @click="uploadType = 'file'"
-                                    :class="uploadType === 'file' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-300'"
-                                    class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition"
+                                    :class="uploadType === 'file' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-[rgb(var(--text-muted))] hover:text-indigo-500'"
+                                    class="px-6 py-2 rounded-[14px] text-[10px] font-black uppercase tracking-widest transition-all"
                                 >
-                                    Direct File
+                                    File Langsung
                                 </button>
                             </div>
                         </div>
 
-                        <form @submit.prevent="submit" class="space-y-6">
+                        <form @submit.prevent="submit" class="space-y-8">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <InputLabel for="title" value="Video Title (Optional)" class="!text-slate-500 !text-[10px] !font-black !uppercase !tracking-widest mb-1" />
-                                    <TextInput id="title" type="text" class="mt-1 block w-full !bg-white/5 !border-white/5 !text-white focus:!ring-indigo-500/50 rounded-xl" v-model="form.title" placeholder="Leave blank for auto-title" />
+                                <div class="space-y-2">
+                                    <InputLabel for="title" value="Identitas Video" class="!text-[rgb(var(--text-muted))] !text-[9px] !font-black !uppercase !tracking-[0.3em] ml-2" />
+                                    <TextInput id="title" type="text" class="mt-1 block w-full !bg-[rgb(var(--bg-input))] !border-none !rounded-2xl !py-4 !px-6 !text-xs !shadow-inner focus:ring-2 focus:ring-indigo-500/10" v-model="form.title" required placeholder="ENTER TITLE..." />
                                     <InputError class="mt-2" :message="form.errors.title" />
                                 </div>
-                                <div v-if="uploadType === 'url'">
-                                    <InputLabel for="url" value="Direct URL (.mp4)" class="!text-slate-500 !text-[10px] !font-black !uppercase !tracking-widest mb-1" />
-                                    <TextInput id="url" type="text" class="mt-1 block w-full !bg-white/5 !border-white/5 !text-white focus:!ring-indigo-500/50 rounded-xl" v-model="form.url" :required="uploadType === 'url'" placeholder="https://cdn.videy.co/..." />
+                                <div v-if="uploadType === 'url'" class="space-y-2">
+                                    <InputLabel for="url" value="Tautan Sumber" class="!text-[rgb(var(--text-muted))] !text-[9px] !font-black !uppercase !tracking-[0.3em] ml-2" />
+                                    <TextInput id="url" type="text" class="mt-1 block w-full !bg-[rgb(var(--bg-input))] !border-none !rounded-2xl !py-4 !px-6 !text-xs !shadow-inner focus:ring-2 focus:ring-indigo-500/10" v-model="form.url" required placeholder="PASTE URL..." />
                                     <InputError class="mt-2" :message="form.errors.url" />
                                 </div>
-                                <div v-else>
-                                    <InputLabel for="video_file" value="Choose Video File" class="!text-slate-500 !text-[10px] !font-black !uppercase !tracking-widest mb-1" />
-                                    <input 
-                                        id="video_file" 
-                                        type="file" 
-                                        accept="video/*"
-                                        @input="form.video_file = $event.target.files[0]"
-                                        class="mt-1 block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-indigo-600/20 file:text-indigo-400 hover:file:bg-indigo-600/30 transition-all cursor-pointer"
-                                        :required="uploadType === 'file'"
-                                    />
+                                <div v-else class="space-y-2">
+                                    <InputLabel for="video_file" value="File Video" class="!text-[rgb(var(--text-muted))] !text-[9px] !font-black !uppercase !tracking-[0.3em] ml-2" />
+                                    <div class="bg-[rgb(var(--bg-input))] rounded-2xl p-2 shadow-inner border border-transparent group-hover:border-indigo-500/20 transition-all">
+                                        <input 
+                                            id="video_file" 
+                                            type="file" 
+                                            accept="video/*"
+                                            @input="form.video_file = $event.target.files[0]"
+                                            class="block w-full text-[10px] text-[rgb(var(--text-muted))] file:mr-4 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-[9px] file:font-black file:uppercase file:bg-indigo-600/10 file:text-indigo-600 hover:file:bg-indigo-600/20 transition-all cursor-pointer"
+                                            :required="uploadType === 'file'"
+                                        />
+                                    </div>
                                     <InputError class="mt-2" :message="form.errors.video_file" />
                                 </div>
                             </div>
-                            <div class="flex items-center justify-between gap-4">
-                                <div class="flex items-center gap-6">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-8 pt-4">
+                                <div class="flex flex-col sm:flex-row sm:items-center gap-8">
                                     <label class="flex items-center group cursor-pointer">
-                                        <Checkbox name="is_premium" v-model:checked="form.is_premium" class="!bg-white/5 !border-white/10 !text-indigo-600 rounded" />
-                                        <span class="ms-2 text-xs font-bold text-slate-400 group-hover:text-slate-200 transition">Premium Content</span>
+                                        <Checkbox name="is_premium" v-model:checked="form.is_premium" class="!bg-[rgb(var(--bg-input))] !border-none !text-indigo-600 rounded-lg w-6 h-6 shadow-inner" />
+                                        <span class="ms-3 text-xs font-black uppercase tracking-widest text-[rgb(var(--text-muted))] group-hover:text-indigo-600 transition">Premium</span>
                                     </label>
                                     
                                     <label v-if="uploadType === 'url'" class="flex items-center group cursor-pointer">
-                                        <Checkbox name="skip_download" v-model:checked="form.skip_download" class="!bg-white/5 !border-white/10 !text-indigo-600 rounded" />
-                                        <span class="ms-2 text-xs font-bold text-slate-400 group-hover:text-slate-200 transition">Keep Remote (Don't Download)</span>
+                                        <Checkbox name="skip_download" v-model:checked="form.skip_download" class="!bg-[rgb(var(--bg-input))] !border-none !text-indigo-600 rounded-lg w-6 h-6 shadow-inner" />
+                                        <span class="ms-3 text-xs font-black uppercase tracking-widest text-[rgb(var(--text-muted))] group-hover:text-amber-600 transition">Skip Lock</span>
                                     </label>
                                 </div>
-                                <PrimaryButton class="btn-premium !px-10" :disabled="form.processing">
-                                    {{ form.processing ? 'Uploading...' : 'Save Video' }}
+                                <PrimaryButton class="btn-premium !px-12 !py-4 shadow-xl shadow-indigo-500/20" :disabled="form.processing">
+                                    {{ form.processing ? 'SEDANG DIPROSES...' : 'TAMBAHKAN VIDEO' }}
                                 </PrimaryButton>
                             </div>
                         </form>
                     </div>
 
                     <!-- Bulk Upload -->
-                    <div class="glass-dark p-8 rounded-[2rem] border border-white/5 bg-gradient-to-br from-indigo-500/5 to-transparent relative group overflow-hidden">
-                         <h3 class="text-xl font-black text-white mb-6 flex items-center gap-3">
-                            <span class="w-2 h-8 bg-violet-500 rounded-full"></span>
-                            Bulk (JSON/CSV)
+                    <div class="glass shadow-royale p-10 rounded-[3rem] border border-[rgb(var(--border-main))] bg-gradient-to-br from-indigo-500/5 to-transparent relative group overflow-hidden">
+                         <div class="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                         <h3 class="text-xl font-black text-[rgb(var(--text-main))] mb-10 flex items-center gap-4 uppercase tracking-tighter relative z-10">
+                            <span class="w-2 h-8 bg-violet-600 rounded-full"></span>
+                            Logistik Massal
                         </h3>
-                        <form @submit.prevent="submitBulk" class="space-y-6">
+                        <form @submit.prevent="submitBulk" class="space-y-8 relative z-10">
                             <div class="relative group/file">
                                 <input id="file" type="file" @input="bulkForm.file = $event.target.files[0]" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" required />
-                                <div class="border-2 border-dashed border-white/10 rounded-2xl p-6 text-center group-hover/file:border-indigo-500/50 transition-colors bg-white/5">
-                                    <div class="text-3xl mb-2 opacity-50">📂</div>
-                                    <div class="text-xs font-black text-slate-400 uppercase tracking-widest">
-                                        {{ bulkForm.file ? bulkForm.file.name : 'Choose File' }}
+                                <div class="border-4 border-dashed border-[rgb(var(--border-main))] rounded-[2rem] p-10 text-center group-hover/file:border-indigo-500/30 transition-all bg-[rgb(var(--bg-input))] shadow-inner">
+                                    <div class="text-4xl mb-4 group-hover/file:scale-125 transition-transform duration-500">📜</div>
+                                    <div class="text-[10px] font-black text-[rgb(var(--text-muted))] uppercase tracking-[0.3em]">
+                                        {{ bulkForm.file ? bulkForm.file.name : 'UPLOAD JSON / CSV' }}
                                     </div>
                                 </div>
                                 <InputError class="mt-2" :message="bulkForm.errors.file" />
                             </div>
-                            <PrimaryButton class="w-full bg-white/10 hover:bg-white/20 text-white font-black py-3 rounded-xl border border-white/10 transition uppercase tracking-widest text-xs" :disabled="bulkForm.processing">Process Import</PrimaryButton>
+                            <button class="w-full bg-[rgb(var(--text-main))] text-[rgb(var(--bg-main))] font-black py-4 rounded-2xl hover:brightness-110 transition uppercase tracking-widest text-[10px] shadow-xl" :disabled="bulkForm.processing">
+                                {{ bulkForm.processing ? 'SEDANG DIPROSES...' : 'KIRIM LOGISTIK' }}
+                            </button>
                         </form>
                     </div>
                 </div>
 
-                <!-- Quick Stats Bar -->
-                <div class="grid grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                     <div class="glass-dark p-6 rounded-3xl border border-white/5 bg-white/2">
-                         <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Local Library</div>
-                         <div class="flex items-baseline gap-2">
-                             <div class="text-3xl font-black text-white italic tracking-tighter">{{ total_local || 0 }}</div>
-                             <div class="text-[10px] font-bold text-green-500 uppercase tracking-widest">Videos</div>
+                <!-- Quick Stats Royale -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                     <div class="glass shadow-royale p-8 rounded-[2.5rem] border border-[rgb(var(--border-main))] bg-gradient-to-br from-indigo-500/5 to-transparent">
+                         <div class="text-[10px] font-black text-[rgb(var(--text-muted))] uppercase tracking-[0.3em] mb-3">Perpustakaan Asal</div>
+                         <div class="flex items-baseline gap-3">
+                             <div class="text-5xl font-black text-[rgb(var(--text-main))] italic tracking-tighter">{{ total_local || 0 }}</div>
+                             <div class="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Vault Items</div>
                          </div>
                      </div>
-                     <div class="glass-dark p-6 rounded-3xl border border-white/5 bg-white/2">
-                         <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Mirroring Progress</div>
-                         <div class="flex items-baseline justify-between mb-2">
-                             <div class="text-3xl font-black text-white italic tracking-tighter">{{ total_mirrored || 0 }}</div>
-                             <div class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">{{ Math.round((total_mirrored / total_local) * 100) || 0 }}% Done</div>
+                     <div class="glass shadow-royale p-8 rounded-[2.5rem] border border-[rgb(var(--border-main))] bg-gradient-to-br from-emerald-500/5 to-transparent">
+                         <div class="text-[10px] font-black text-[rgb(var(--text-muted))] uppercase tracking-[0.3em] mb-3">Efisiensi Sinkronisasi</div>
+                         <div class="flex items-baseline justify-between mb-4">
+                             <div class="text-5xl font-black text-[rgb(var(--text-main))] italic tracking-tighter">{{ total_mirrored || 0 }}</div>
+                             <div class="text-sm font-black text-emerald-600 uppercase tracking-widest">{{ Math.round((total_mirrored / total_local) * 100) || 0 }}% Berhasil</div>
                          </div>
-                         <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                             <div class="h-full bg-indigo-500 transition-all duration-1000 shadow-[0_0_10px_rgba(99,102,241,0.5)]" :style="{ width: ((total_mirrored / total_local) * 100 || 0) + '%' }"></div>
+                         <div class="w-full h-2 bg-[rgb(var(--bg-input))] rounded-full overflow-hidden shadow-inner p-0.5">
+                             <div class="h-full bg-emerald-500 transition-all duration-1000 shadow-[0_0_15px_rgba(16,185,129,0.5)] rounded-full" :style="{ width: ((total_mirrored / total_local) * 100 || 0) + '%' }"></div>
                          </div>
                      </div>
-                     <div class="glass-dark p-6 rounded-3xl border border-white/5 bg-white/2">
-                         <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Downloader Pending</div>
-                         <div class="flex items-baseline gap-2">
-                             <div class="text-3xl font-black text-white italic tracking-tighter">{{ total_pending || 0 }}</div>
-                             <div class="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Awaiting</div>
+                     <div class="glass shadow-royale p-8 rounded-[2.5rem] border border-[rgb(var(--border-main))] bg-gradient-to-br from-amber-500/5 to-transparent">
+                         <div class="text-[10px] font-black text-[rgb(var(--text-muted))] uppercase tracking-[0.3em] mb-3">Antrean Sinkronisasi</div>
+                         <div class="flex items-baseline gap-3">
+                             <div class="text-5xl font-black text-[rgb(var(--text-main))] italic tracking-tighter">{{ total_pending || 0 }}</div>
+                             <div class="text-[10px] font-black text-amber-600 uppercase tracking-widest">Menunggu Antrean</div>
                          </div>
                      </div>
                 </div>
@@ -497,9 +588,9 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                         <div class="flex items-center justify-between border-b border-white/5 pb-4 relative z-10">
                             <h3 class="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
                                 <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
-                                Distribution Pipeline
+                                Saluran Distribusi
                             </h3>
-                            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Fully Automated Streamtape Mode</span>
+                            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Multi-Host Mirroring Pipeline</span>
                         </div>
 
                         <div class="flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
@@ -511,7 +602,7 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                                 <div class="text-[10px] font-black text-white uppercase tracking-widest">Videy CDN</div>
                                 <div class="flex flex-col gap-0.5">
                                     <div class="text-[9px] font-bold text-slate-500 uppercase">{{ total_download_pending }} Pending</div>
-                                    <div v-if="activeDownloads > 0" class="text-[8px] font-black text-indigo-400 uppercase animate-pulse">{{ activeDownloads }} Downloading</div>
+                                    <div v-if="activeDownloads > 0" class="text-[8px] font-black text-indigo-400 uppercase animate-pulse">{{ activeDownloads }} Downloading ({{ averageDownloadProgress }}%)</div>
                                 </div>
                             </div>
 
@@ -520,21 +611,26 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                             <!-- Stage 2: Local Storage -->
                             <div class="flex flex-col items-center text-center gap-2 flex-1">
                                 <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-xl shadow-lg shadow-indigo-500/10">💾</div>
-                                <div class="text-[10px] font-black text-white uppercase tracking-widest">Local Storage</div>
-                                <div class="text-[9px] font-bold text-indigo-400 uppercase">{{ localReady }} Ready</div>
+                                <div class="text-[10px] font-black text-white uppercase tracking-widest">Penyimpanan Lokal</div>
+                                <div class="text-[9px] font-bold text-indigo-400 uppercase">{{ localReady }} Siap</div>
                             </div>
 
                             <div class="hidden sm:block text-slate-700 animate-pulse">→</div>
 
-                            <!-- Stage 3: Streamtape -->
-                            <div class="flex flex-col items-center text-center gap-2 flex-1">
+                            <!-- Stage 3: Mirrors -->
+                            <div class="flex flex-col items-center text-center gap-2 flex-1 relative group/mirrors">
                                 <div :class="{'animate-pulse bg-emerald-500/20 border-emerald-500/40': activeMirrors > 0}" class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xl shadow-lg shadow-emerald-500/10 transition-all duration-500">
                                     📼
                                 </div>
-                                <div class="text-[10px] font-black text-white uppercase tracking-widest">Streamtape</div>
+                                <div class="text-[10px] font-black text-white uppercase tracking-widest">Mirror Aktif</div>
                                 <div class="flex flex-col gap-0.5">
-                                    <div class="text-[9px] font-bold text-emerald-400 uppercase">{{ mirroredTotal }} Mirrored</div>
-                                    <div v-if="activeMirrors > 0" class="text-[8px] font-black text-yellow-400 uppercase animate-pulse">{{ activeMirrors }} Exporting</div>
+                                    <div class="flex items-center gap-1.5 justify-center">
+                                        <div class="flex flex-col gap-0.5">
+                                            <span class="text-[8px] font-bold text-emerald-400 uppercase">TAP: {{ hostStats.streamtape }}</span>
+                                            <span class="text-[8px] font-bold text-blue-400 uppercase">DDS: {{ hostStats.doodstream }}</span>
+                                        </div>
+                                    </div>
+                                    <div v-if="activeMirrors > 0" class="text-[8px] font-black text-yellow-400 uppercase animate-pulse">{{ activeMirrors }} Syncing ({{ averageUploadProgress }}%)</div>
                                 </div>
                             </div>
                         </div>
@@ -542,13 +638,13 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                         <!-- Overall Progress Bar -->
                         <div class="space-y-2 relative z-10">
                             <div class="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-500">
-                                <span>Total Distribution Success</span>
-                                <span class="text-white">{{ Math.round((mirroredTotal / (localReady + total_download_pending || 1)) * 100) }}%</span>
+                                <span>Total Keberhasilan Distribusi</span>
+                                <span class="text-white">{{ Math.round((mirroredTotal / (localReady + downloadPendingTotal || 1)) * 100) }}%</span>
                             </div>
                             <div class="w-full h-2 bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
                                 <div 
                                     class="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(79,70,229,0.4)]" 
-                                    :style="{ width: ((mirroredTotal / (localReady + total_download_pending || 1)) * 100 || 0) + '%' }"
+                                    :style="{ width: ((mirroredTotal / (localReady + downloadPendingTotal || 1)) * 100 || 0) + '%' }"
                                 ></div>
                             </div>
                         </div>
@@ -559,11 +655,11 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                         <div class="flex items-center justify-between border-b border-white/5 pb-4">
                             <h3 class="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-                                Recent Mirroring Activity
+                                Aktivitas Sinkronisasi Terkini
                             </h3>
                         </div>
                         <div class="space-y-3">
-                            <div v-for="video in recent_activity" :key="video.id" 
+                            <div v-for="video in recentActivityList" :key="video.id" 
                                  class="flex items-center gap-4 p-3 bg-white/2 rounded-2xl border border-white/5 hover:bg-white/5 transition cursor-pointer"
                                  @click="openPreview(video)"
                             >
@@ -582,7 +678,7 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                                 <div class="text-[8px] font-black text-slate-600 uppercase">{{ new Date(video.updated_at).toLocaleTimeString() }}</div>
                             </div>
                             <div v-if="recent_activity.length === 0" class="text-center py-6 text-[10px] font-black text-slate-600 uppercase tracking-widest">
-                                Waiting for mirrors...
+                                Menunggu sinkronisasi...
                             </div>
                         </div>
                     </div>
@@ -592,11 +688,11 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                 <div class="glass-dark rounded-[2.5rem] border border-white/5 overflow-hidden shadow-2xl">
                     <div class="p-8 border-b border-white/5 flex items-center justify-between">
                          <h3 class="font-black text-white uppercase tracking-widest text-sm flex items-center gap-4">
-                             Active Library
+                             Perpustakaan Aktif
                              
                              <!-- Proxy Toggle -->
                              <div class="flex items-center bg-white/5 px-4 py-2 rounded-[18px] border border-white/10 gap-3 group/proxy">
-                                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Proxy Shield</span>
+                                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Pelindung Proksi</span>
                                 <button 
                                     @click="proxyActive = !proxyActive; toggleProxy()"
                                     :class="proxyActive ? 'bg-indigo-600' : 'bg-slate-700'"
@@ -611,24 +707,25 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                                     {{ proxyActive ? 'ON' : 'OFF' }}
                                 </span>
                              </div>
-
-                             <div class="flex flex-wrap items-center gap-3">
-                                 <!-- Automated Pipeline Monitor Active -->
-                             </div>
                          </h3>
                          
                          <!-- Bulk Actions Toolbar -->
-                         <div v-if="selectedIds.length > 0" class="flex items-center gap-4 animate-in fade-in slide-in-from-right-4">
-                            <span class="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{{ selectedIds.length }} Selected</span>
-                            <button 
-                                @click="deleteSelected"
-                                class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-black border border-red-500/20 rounded-xl transition uppercase tracking-widest flex items-center gap-2"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                                </svg>
-                                Delete Selected
-                            </button>
+                         <div v-if="selectedIds.length > 0" class="flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-right-4">
+                            <span class="text-[9px] md:text-[10px] font-black text-indigo-400 uppercase tracking-widest">{{ selectedIds.length }} Terpilih</span>
+                            <div class="flex items-center gap-2">
+                                <button 
+                                    @click="exportSocialLinks"
+                                    class="px-3 md:px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 text-[9px] md:text-[10px] font-black border border-emerald-500/20 rounded-xl transition uppercase tracking-widest flex items-center gap-2"
+                                >
+                                    📥 <span class="hidden sm:inline">Ekspor</span>
+                                </button>
+                                <button 
+                                    @click="deleteSelected"
+                                    class="px-3 md:px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[9px] md:text-[10px] font-black border border-red-500/20 rounded-xl transition uppercase tracking-widest flex items-center gap-2"
+                                >
+                                    🗑️ <span class="hidden sm:inline">Hapus</span>
+                                </button>
+                            </div>
                          </div>
                     </div>
                     <div class="overflow-x-auto">
@@ -638,12 +735,13 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                                     <th class="py-5 px-8 w-10">
                                         <Checkbox :checked="isAllSelected" @change="toggleSelectAll" class="!bg-white/5 !border-white/10 !text-indigo-600 rounded" />
                                     </th>
-                                    <th class="py-5 px-8">Media Details</th>
-                                    <th class="py-5 px-8">Tier</th>
-                                    <th class="py-5 px-8">Mirroring Status</th>
-                                    <th class="py-5 px-8">Storage Status</th>
-                                    <th class="py-5 px-8 text-center">Stats</th>
-                                    <th class="py-5 px-8 text-right">Actions</th>
+                                    <th class="py-5 px-8">Detail Media</th>
+                                    <th class="py-5 px-8">Kesehatan</th>
+                                    <th class="py-5 px-8">Tingkatan</th>
+                                    <th class="py-5 px-8">Status Sinkronisasi</th>
+                                    <th class="py-5 px-8">Status Penyimpanan</th>
+                                    <th class="py-5 px-8 text-center">Statistik</th>
+                                    <th class="py-5 px-8 text-right">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-white/5">
@@ -685,6 +783,24 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                                         </div>
                                     </td>
                                     <td class="py-5 px-8">
+                                        <div v-if="video.health_report" class="flex flex-col gap-1.5 min-w-[80px]">
+                                            <div class="flex items-center gap-2">
+                                                <div :class="video.health_report.local?.status === 'healthy' ? 'bg-emerald-500' : (video.health_report.local?.status === 'na' ? 'bg-slate-700' : 'bg-red-500')" class="w-1.5 h-1.5 rounded-full shadow-[0_0_5px_rgba(0,0,0,0.5)]"></div>
+                                                <span class="text-[8px] font-black uppercase text-slate-400">LOC</span>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <div :class="video.health_report.videy?.status === 'healthy' ? 'bg-emerald-500' : (video.health_report.videy?.status === 'na' ? 'bg-slate-700' : 'bg-red-500')" class="w-1.5 h-1.5 rounded-full shadow-[0_0_5px_rgba(0,0,0,0.5)]"></div>
+                                                <span class="text-[8px] font-black uppercase text-slate-400">VDY</span>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <div :class="video.health_report.streamtape?.status === 'healthy' ? 'bg-emerald-500' : (video.health_report.streamtape?.status === 'na' ? 'bg-slate-700' : 'bg-red-500')" class="w-1.5 h-1.5 rounded-full shadow-[0_0_5px_rgba(0,0,0,0.5)]"></div>
+                                                <span class="text-[8px] font-black uppercase text-slate-400">TAP</span>
+                                            </div>
+                                            <div v-if="video.last_check_at" class="text-[7px] text-slate-600 font-bold uppercase mt-1">{{ new Date(video.last_check_at).toLocaleDateString() }}</div>
+                                        </div>
+                                        <div v-else class="text-[8px] font-black text-slate-700 uppercase italic">Belum Pernah Diperiksa</div>
+                                    </td>
+                                    <td class="py-5 px-8">
                                         <span v-if="video.is_free_to_all" class="bg-green-500/10 text-green-500 text-[10px] px-3 py-1 rounded-full border border-green-500/20 font-black uppercase tracking-widest">Global Free</span>
                                         <span v-else-if="video.is_premium" class="bg-indigo-500/10 text-indigo-400 text-[10px] px-3 py-1 rounded-full border border-indigo-500/20 font-black uppercase tracking-widest">Premium Only</span>
                                         <span v-else class="bg-slate-800 text-slate-400 text-[10px] px-3 py-1 rounded-full border border-white/5 font-black uppercase tracking-widest">Standard</span>
@@ -705,10 +821,10 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                                             </div>
 
                                             <!-- Status label -->
-                                            <span v-if="video.hosting_status?.['streamtape'] === 'success'" class="text-[8px] font-black text-emerald-400 uppercase tracking-widest">Mirrored</span>
-                                            <span v-else-if="video.hosting_status?.['streamtape'] === 'uploading'" class="text-[8px] font-black text-blue-400 uppercase tracking-widest animate-pulse">Uploading...</span>
-                                            <span v-else-if="video.hosting_status?.['streamtape']?.startsWith('failed')" class="text-[8px] font-black text-red-400 uppercase tracking-widest">Failed</span>
-                                            <span v-else class="text-[8px] font-black text-slate-600 uppercase tracking-widest">Pending</span>
+                                            <span v-if="video.hosting_status?.['streamtape'] === 'success'" class="text-[8px] font-black text-emerald-400 uppercase tracking-widest">Tersinkron</span>
+                                            <span v-else-if="video.hosting_status?.['streamtape'] === 'uploading'" class="text-[8px] font-black text-blue-400 uppercase tracking-widest animate-pulse">Sedang Mengunggah...</span>
+                                            <span v-else-if="video.hosting_status?.['streamtape']?.startsWith('failed')" class="text-[8px] font-black text-red-400 uppercase tracking-widest">Gagal</span>
+                                            <span v-else class="text-[8px] font-black text-slate-600 uppercase tracking-widest">Menunggu</span>
 
                                             <span v-if="video.host_status === 'mirrored'" class="ml-auto text-emerald-500">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
@@ -733,7 +849,7 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                                             <div v-else class="flex items-center gap-2">
                                                 <span v-if="video.download_status === 'failed'" class="text-[9px] font-black uppercase tracking-widest text-red-500 bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/20 w-fit flex items-center gap-1.5">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                    Failed
+                                                    Gagal
                                                 </span>
                                                 <span v-else class="text-[9px] font-black uppercase tracking-widest text-slate-500 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 w-fit flex items-center gap-1.5">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
@@ -744,12 +860,17 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                                     </td>
                                     <td class="py-5 px-8 text-center">
                                         <div class="inline-flex flex-col items-center px-4 py-1.5 bg-white/5 rounded-xl border border-white/5">
-                                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-tight">Views</span>
+                                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-tight">Tontonan</span>
                                             <span class="text-white font-bold tracking-tight">{{ video.views.toLocaleString() }}</span>
                                         </div>
                                     </td>
                                     <td class="py-5 px-8 text-right">
                                         <div class="flex justify-end gap-3 translate-x-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                                            <button @click="copyMaskedLink(video)" class="p-2 text-emerald-400 hover:bg-emerald-500/10 rounded-xl transition shadow-lg" title="Copy Masked Social Link">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.142a2 2 0 012.828 2.828l-3.536 3.536a2 2 0 01-2.828 0M9.172 14.858a2 2 0 01-2.828-2.828l3.536-3.536a2 2 0 012.828 0M11 11l.01.01" />
+                                                </svg>
+                                            </button>
                                             <button @click="openPreview(video)" class="p-2 text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition shadow-lg" title="Preview Video">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -794,7 +915,7 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                         <div class="flex items-center gap-4">
                             <h3 class="text-lg font-black text-white italic truncate max-w-md uppercase tracking-tighter">{{ selectedVideo?.title }}</h3>
                             <span :class="isLocal(selectedVideo) ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'" class="text-[10px] px-4 py-1.5 rounded-full border font-black uppercase tracking-widest">
-                                Source: {{ isLocal(selectedVideo) ? 'LOCAL STORAGE' : 'CDN PROXY' }}
+                                Sumber: {{ isLocal(selectedVideo) ? 'PENYIMPANAN LOKAL' : 'PROKSI CDN' }}
                             </span>
                         </div>
                         <button @click="showPreviewModal = false" class="p-3 hover:bg-white/10 rounded-full text-slate-400 hover:text-white transition-all active:scale-95">
@@ -816,13 +937,13 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                     <!-- Debug Info Area -->
                     <div class="p-8 bg-black/40 border-t border-white/5 space-y-4">
                         <div class="flex items-start gap-4">
-                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest min-w-[100px] mt-2">Active Stream:</span>
+                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest min-w-[100px] mt-2">Aliran Aktif:</span>
                             <div class="flex-1 bg-white/5 p-3 rounded-2xl border border-white/5 font-mono text-[10px] text-indigo-300 break-all select-all leading-relaxed">
                                 {{ getPreviewUrl(selectedVideo) }}
                             </div>
                         </div>
                         <div class="flex items-start gap-4">
-                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest min-w-[100px] mt-1">Origin URL:</span>
+                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest min-w-[100px] mt-1">URL Asal:</span>
                             <div class="flex-1 text-[10px] text-slate-500 truncate italic">
                                 {{ selectedVideo?.url }}
                             </div>
@@ -843,8 +964,8 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                             </svg>
                         </div>
                         <div>
-                            <h3 class="text-xl font-black text-white uppercase tracking-tighter italic">Confirm Mirroring</h3>
-                            <p class="text-xs text-slate-400 font-medium">Start background mirroring for all local videos?</p>
+                            <h3 class="text-xl font-black text-white uppercase tracking-tighter italic">Konfirmasi Sinkronisasi</h3>
+                            <p class="text-xs text-slate-400 font-medium">Mulai sinkronisasi latar belakang untuk semua video lokal?</p>
                         </div>
                     </div>
 
@@ -861,8 +982,8 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                     </div>
 
                     <div class="flex gap-4 pt-4">
-                        <button @click="showMirrorConfirmModal = false" class="flex-1 py-4 bg-white/5 hover:bg-white/10 rounded-2xl text-[10px] font-black uppercase text-slate-400 border border-white/10 transition">Cancel</button>
-                        <button @click="confirmMirrorBulk" class="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl text-[10px] font-black uppercase text-white shadow-xl shadow-indigo-600/20 transition">Start Mirroring</button>
+                        <button @click="showMirrorConfirmModal = false" class="flex-1 py-4 bg-white/5 hover:bg-white/10 rounded-2xl text-[10px] font-black uppercase text-slate-400 border border-white/10 transition">Batal</button>
+                        <button @click="confirmMirrorBulk" class="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl text-[10px] font-black uppercase text-white shadow-xl shadow-indigo-600/20 transition">Mulai Sinkronisasi</button>
                     </div>
                 </div>
             </div>

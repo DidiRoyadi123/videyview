@@ -1,0 +1,136 @@
+﻿--- Smart Doodstream Matching Operation Started ---
+Fetching file list from Doodstream...
+Found 42 files. Starting Smart Pattern Matching...
+
+Checking Dood File: 'video-1lsbculs1-pOjtU' (Extracted Core ID: 1lsbculs1)
+   [MATCHED] Found Video ID: 345 | Slug: video-1lsbculs1-pOjtU
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-1knwt2jg1-Miav8' (Extracted Core ID: 1knwt2jg1)
+   [MATCHED] Found Video ID: 3631 | Slug: video-1knwt2jg1-Miav8
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0r6dmesn1-x1Dnf' (Extracted Core ID: 0r6dmesn1)
+   [MATCHED] Found Video ID: 2130 | Slug: video-0r6dmesn1-x1Dnf
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-1jn9e0xb1-sdDAK' (Extracted Core ID: 1jn9e0xb1)
+   [MATCHED] Found Video ID: 1356 | Slug: video-1jn9e0xb1-sdDAK
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-1j8ntkus1-WffJm' (Extracted Core ID: 1j8ntkus1)
+   [MATCHED] Found Video ID: 65 | Slug: video-1j8ntkus1-WffJm
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-1f31iue51-dA4yw' (Extracted Core ID: 1f31iue51)
+   [MATCHED] Found Video ID: 3793 | Slug: video-1f31iue51-dA4yw
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-1emeyy7z1-4gLOv' (Extracted Core ID: 1emeyy7z1)
+   [MATCHED] Found Video ID: 2493 | Slug: video-1emeyy7z1-4gLOv
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-1cfru3rv1-XwEWk' (Extracted Core ID: 1cfru3rv1)
+   [MATCHED] Found Video ID: 344 | Slug: video-1cfru3rv1-XwEWk
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-1cabm7c11-Wc4zz' (Extracted Core ID: 1cabm7c11)
+   [MATCHED] Found Video ID: 1672 | Slug: video-1cabm7c11-Wc4zz
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0zunpbnb1-oE47J' (Extracted Core ID: 0zunpbnb1)
+   [MATCHED] Found Video ID: 3881 | Slug: video-0zunpbnb1-oE47J
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-1b34ae331-Z729U' (Extracted Core ID: 1b34ae331)
+   [MATCHED] Found Video ID: 913 | Slug: video-1b34ae331-Z729U
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-1b8wxbzo1-Jv4Ty' (Extracted Core ID: 1b8wxbzo1)
+   [MATCHED] Found Video ID: 1360 | Slug: video-1b8wxbzo1-Jv4Ty
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-1abd3fc61-5aIQM' (Extracted Core ID: 1abd3fc61)
+   [MATCHED] Found Video ID: 777 | Slug: video-1abd3fc61-5aIQM
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-01taolto1-JrxYs' (Extracted Core ID: 01taolto1)
+   [MATCHED] Found Video ID: 1826 | Slug: video-01taolto1-JrxYs
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0ykqslik1-CZsco' (Extracted Core ID: 0ykqslik1)
+   [MATCHED] Found Video ID: 779 | Slug: video-0ykqslik1-CZsco
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0xo6ii1d1-dgVjC' (Extracted Core ID: 0xo6ii1d1)
+   [MATCHED] Found Video ID: 787 | Slug: video-0xo6ii1d1-dgVjC
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0wu440x91-CZni9' (Extracted Core ID: 0wu440x91)
+   [MATCHED] Found Video ID: 3756 | Slug: video-0wu440x91-CZni9
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0udjymkt1-u3tYw' (Extracted Core ID: 0udjymkt1)
+   [MATCHED] Found Video ID: 673 | Slug: video-0udjymkt1-u3tYw
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0saqblol1-HAzvd' (Extracted Core ID: 0saqblol1)
+   [MATCHED] Found Video ID: 1508 | Slug: video-0saqblol1-HAzvd
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0r7b7wpo1-zi6Zu' (Extracted Core ID: 0r7b7wpo1)
+   [MATCHED] Found Video ID: 2024 | Slug: video-0r7b7wpo1-zi6Zu
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0k3oekl51-dgjBV' (Extracted Core ID: 0k3oekl51)
+   [MATCHED] Found Video ID: 1661 | Slug: video-0k3oekl51-dgjBV
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0n7attuc1-Fi4cE' (Extracted Core ID: 0n7attuc1)
+   [MATCHED] Found Video ID: 1307 | Slug: video-0n7attuc1-Fi4cE
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0l9douux1-f1u6f' (Extracted Core ID: 0l9douux1)
+   [MATCHED] Found Video ID: 1025 | Slug: video-0l9douux1-f1u6f
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0kjsnc2n1-Tsd3W' (Extracted Core ID: 0kjsnc2n1)
+   [MATCHED] Found Video ID: 2186 | Slug: video-0kjsnc2n1-Tsd3W
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0k4yctfz1-SYQHz' (Extracted Core ID: 0k4yctfz1)
+   [MATCHED] Found Video ID: 1678 | Slug: video-0k4yctfz1-SYQHz
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0igoc3aq1-tzgH0' (Extracted Core ID: 0igoc3aq1)
+   [MATCHED] Found Video ID: 1669 | Slug: video-0igoc3aq1-tzgH0
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0gxxxvtr1-wFqeM' (Extracted Core ID: 0gxxxvtr1)
+   [MATCHED] Found Video ID: 640 | Slug: video-0gxxxvtr1-wFqeM
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0fskizh51-Wb0Af' (Extracted Core ID: 0fskizh51)
+   [MATCHED] Found Video ID: 549 | Slug: video-0fskizh51-Wb0Af
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0fifg5gx1-v0Ws0' (Extracted Core ID: 0fifg5gx1)
+   [MATCHED] Found Video ID: 3864 | Slug: video-0fifg5gx1-v0Ws0
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0a6uxtew1-LK3Tw' (Extracted Core ID: 0a6uxtew1)
+   [MATCHED] Found Video ID: 3909 | Slug: video-0a6uxtew1-LK3Tw
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0ctmpo6x1-w9Pks' (Extracted Core ID: 0ctmpo6x1)
+   [MATCHED] Found Video ID: 252 | Slug: video-0ctmpo6x1-w9Pks
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0e0cgox01-dlba4' (Extracted Core ID: 0e0cgox01)
+   [MATCHED] Found Video ID: 3948 | Slug: video-0e0cgox01-dlba4
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0dlfyfco1-IMeB0' (Extracted Core ID: 0dlfyfco1)
+   [MATCHED] Found Video ID: 2193 | Slug: video-0dlfyfco1-IMeB0
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0a766f491-FXFvW' (Extracted Core ID: 0a766f491)
+   [MATCHED] Found Video ID: 858 | Slug: video-0a766f491-FXFvW
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0cesqajj1-hLxDL' (Extracted Core ID: 0cesqajj1)
+   [MATCHED] Found Video ID: 1862 | Slug: video-0cesqajj1-hLxDL
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0byn4hpr1-yP84u' (Extracted Core ID: 0byn4hpr1)
+   [MATCHED] Found Video ID: 386 | Slug: video-0byn4hpr1-yP84u
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0bsondre1-EKFYw' (Extracted Core ID: 0bsondre1)
+   [MATCHED] Found Video ID: 89 | Slug: video-0bsondre1-EKFYw
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0auql99b1-MhKKn' (Extracted Core ID: 0auql99b1)
+   [MATCHED] Found Video ID: 1312 | Slug: video-0auql99b1-MhKKn
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-0arejn2l1-YaJg0' (Extracted Core ID: 0arejn2l1)
+   [MATCHED] Found Video ID: 2375 | Slug: video-0arejn2l1-YaJg0
+   [SUCCESS] Synced to database.
+Checking Dood File: '59zA6NvB1' (Extracted Core ID: 59za6nvb1)
+   [MATCHED] Found Video ID: 92 | Slug: video-59za6nvb1-v4vT4
+   [SUCCESS] Synced to database.
+Checking Dood File: 'video-01taolto1-JrxYs' (Extracted Core ID: 01taolto1)
+   [MATCHED] Found Video ID: 1826 | Slug: video-01taolto1-JrxYs
+   [SUCCESS] Synced to database.
+Checking Dood File: '59zA6NvB1' (Extracted Core ID: 59za6nvb1)
+   [MATCHED] Found Video ID: 92 | Slug: video-59za6nvb1-v4vT4
+   [SUCCESS] Synced to database.
+
+=========================================
+Smart Matching Results:
+Total Records Processed: 42
+Total Matches Synced   : 42
+=========================================

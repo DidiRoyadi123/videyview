@@ -26,4 +26,9 @@ interface HostingDriver
      * Get the thumbnail URL from the host if available.
      */
     public function getThumbnailUrl(string $fileId): ?string;
+
+    /**
+     * Check the status of a remote upload/link copy task.
+     */
+    public function checkRemoteStatus(string $remoteId): array;
 }

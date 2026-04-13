@@ -22,6 +22,7 @@ watch(() => page.props.flash, (flash) => {
 const showingNavigationDropdown = ref(false);
 const isScrolled = ref(false);
 const isNavigating = ref(false);
+const theme = ref(localStorage.getItem('theme') || 'dark');
 
 provide('isNavigating', isNavigating);
 
@@ -30,11 +31,18 @@ router.on('finish', () => isNavigating.value = false);
 
 useAutoLogout(30); // 30 minutes idle timeout
 
+const toggleTheme = () => {
+    theme.value = theme.value === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', theme.value);
+    document.documentElement.setAttribute('data-theme', theme.value);
+};
+
 const handleScroll = () => {
     isScrolled.value = window.scrollY > 20;
 };
 
 onMounted(() => {
+    document.documentElement.setAttribute('data-theme', theme.value);
     window.addEventListener('scroll', handleScroll);
 });
 
@@ -44,59 +52,68 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-950 text-slate-200 overflow-x-hidden">
+    <div class="min-h-screen transition-colors duration-500 overflow-x-hidden" :style="{ backgroundColor: 'rgb(var(--bg-main))', color: 'rgb(var(--text-main))' }">
         <!-- Floating Modern Navbar -->
         <div class="fixed top-0 left-0 right-0 z-50 px-2 md:px-4 pt-2 md:pt-4 transition-all duration-300">
             <nav :class="[
-                'max-w-7xl mx-auto rounded-2xl md:rounded-3xl transition-all duration-500',
-                isScrolled ? 'glass-dark py-2' : 'bg-slate-950/80 backdrop-blur-xl md:bg-transparent py-2 md:py-4 border border-white/5 md:border-transparent'
+                'max-w-7xl mx-auto rounded-3xl transition-all duration-700 overflow-hidden',
+                isScrolled ? 'glass shadow-royale py-2' : 'bg-transparent py-4'
             ]">
-                <div class="px-4 md:px-6 flex justify-between items-center h-12 md:h-14">
+                <div class="px-6 flex justify-between items-center h-14">
                     <!-- Brand Section -->
                     <div class="flex items-center gap-4 shrink-0">
                         <Link :href="route('home')" class="group flex items-center gap-2">
-                            <ApplicationLogo class="h-8 w-auto fill-current text-indigo-500 transition-transform group-hover:scale-110" />
-                            <span class="font-black text-lg md:text-xl tracking-tighter text-white group-hover:text-indigo-400 transition-colors">VIDEY<span class="text-indigo-500">VIEW</span></span>
+                            <ApplicationLogo class="h-9 w-auto fill-current text-indigo-500 transition-transform group-hover:scale-110" />
+                            <span class="text-xl font-black italic tracking-tighter uppercase hidden sm:block" :style="{ color: 'rgb(var(--text-main))' }">VIDEYVIEW</span>
                         </Link>
                     </div>
 
-                    <!-- Desktop Navigation (Center/Right) -->
-                    <div class="hidden md:flex items-center gap-1 flex-1 px-8">
-                        <Link :href="route('home')" class="px-4 py-2 rounded-xl text-sm font-bold transition-all hover:bg-white/5" :class="route().current('home') ? 'text-indigo-400 bg-white/5' : 'text-slate-400'">
-                            Discover
+                    <!-- Desktop Navigation -->
+                    <div class="hidden md:flex items-center gap-2 flex-1 px-12">
+                        <Link :href="route('home')" class="px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:bg-indigo-500/5" :class="route().current('home') ? 'text-indigo-500 bg-indigo-500/5 shadow-inner' : 'text-[rgb(var(--text-muted))] hover:text-indigo-400'">
+                            JELAJAHI
                         </Link>
                     </div>
 
-                    <!-- Desktop Actions -->
+                    <!-- Actions -->
                     <div class="hidden md:flex items-center gap-4">
+                        <!-- Theme Toggle (Royale Style) -->
+                        <button 
+                            @click="toggleTheme" 
+                            class="p-3 rounded-2xl transition-all duration-500 hover:scale-110 active:scale-90 flex items-center justify-center bg-[rgb(var(--bg-input))] border border-[rgb(var(--border-main))] shadow-inner"
+                            :title="theme === 'dark' ? 'Aktifkan Mode Terang' : 'Aktifkan Mode Gelap'"
+                        >
+                            <svg v-if="theme === 'dark'" class="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                            <svg v-else class="w-5 h-5 text-indigo-600 drop-shadow-[0_0_8px_rgba(79,70,229,0.3)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                        </button>
+
                         <template v-if="$page.props.auth.user">
-                            <div class="flex items-center gap-2">
-                                <Link v-if="$page.props.auth.user.is_admin" :href="route('admin.videos.index')" class="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition">Admin</Link>
-                                <div class="h-4 w-px bg-slate-800 mx-2"></div>
-                                <Link :href="route('dashboard')" class="btn-premium flex items-center gap-2">
-                                    <span class="text-xs font-black">{{ $page.props.auth.user.name }}</span>
-                                    <div class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">👤</div>
+                            <div class="flex items-center gap-3">
+                                <Link v-if="$page.props.auth.user.is_admin" :href="route('admin.videos.index')" class="text-[9px] font-black uppercase tracking-[0.3em] text-[rgb(var(--text-muted))] hover:text-indigo-400 transition hidden lg:block">ADMIN</Link>
+                                <div class="h-4 w-px bg-[rgb(var(--border-main))] mx-1 hidden lg:block"></div>
+                                <Link :href="route('dashboard')" class="btn-premium flex items-center gap-3 !px-5 !py-2.5">
+                                    <span class="text-[10px] font-black uppercase tracking-widest">{{ $page.props.auth.user.name }}</span>
+                                    <div class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-[10px] shadow-inner">👤</div>
                                 </Link>
-                                <div class="h-4 w-px bg-slate-800 mx-2"></div>
-                                <Link :href="route('logout')" method="post" as="button" class="text-[10px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-500 transition">
-                                    Sign Out
+                                <div class="h-4 w-px bg-[rgb(var(--border-main))] mx-1 hidden lg:block"></div>
+                                <Link :href="route('logout')" method="post" as="button" class="text-[10px] font-black uppercase tracking-widest text-rose-500/60 hover:text-rose-500 transition hidden lg:block">
+                                    KELUAR
                                 </Link>
                             </div>
                         </template>
                         <template v-else>
-                            <a v-if="!$page.props.auth.user?.is_admin && $page.props.ads?.smartlink" :href="$page.props.ads.smartlink" target="_blank" class="text-xs font-black text-emerald-400 hover:text-emerald-300 transition uppercase tracking-widest px-4 border-r border-white/5 mr-2">🚀 Special Offer</a>
-                            <Link :href="route('login')" class="text-sm font-bold text-slate-400 hover:text-white transition px-4 py-2">Sign In</Link>
-                            <Link :href="route('register')" class="btn-premium">Get Started</Link>
+                            <Link :href="route('login')" class="text-[10px] font-black uppercase tracking-widest text-[rgb(var(--text-muted))] hover:text-indigo-400 transition px-5 py-2.5 rounded-2xl border border-transparent hover:border-[rgb(var(--border-main))]">SIGN IN</Link>
+                            <Link :href="route('register')" class="btn-premium">GET STARTED</Link>
                         </template>
                     </div>
 
-                    <!-- Hamburger (Visible on Mobile Only) -->
+                    <!-- Hamburger (Mobile Only) -->
                     <div class="md:hidden flex-shrink-0 ml-4">
-                        <button @click="showingNavigationDropdown = !showingNavigationDropdown" class="relative group p-2.5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all active:scale-95 shadow-lg">
+                        <button @click="showingNavigationDropdown = !showingNavigationDropdown" class="p-3 rounded-2xl bg-[rgb(var(--bg-input))] border border-[rgb(var(--border-main))] shadow-inner transition-all active:scale-90">
                             <div class="w-6 h-5 flex flex-col justify-between items-end relative overflow-hidden">
-                                <span :class="['h-0.5 bg-white transition-all duration-300 rounded-full', showingNavigationDropdown ? 'w-6 absolute top-2 rotate-45' : 'w-6']"></span>
-                                <span :class="['h-0.5 bg-indigo-500 transition-all duration-300 rounded-full', showingNavigationDropdown ? 'opacity-0 translate-x-12' : 'w-4']"></span>
-                                <span :class="['h-0.5 bg-white transition-all duration-300 rounded-full', showingNavigationDropdown ? 'w-6 absolute top-2 -rotate-45' : 'w-5']"></span>
+                                <span :class="['h-0.5 bg-indigo-500 transition-all duration-500 rounded-full', showingNavigationDropdown ? 'w-6 absolute top-2 rotate-45' : 'w-6']"></span>
+                                <span :class="['h-0.5 bg-[rgb(var(--text-main))] transition-all duration-300 rounded-full', showingNavigationDropdown ? 'opacity-0 translate-x-12' : 'w-4']"></span>
+                                <span :class="['h-0.5 bg-indigo-500 transition-all duration-500 rounded-full', showingNavigationDropdown ? 'w-6 absolute top-2 -rotate-45' : 'w-5']"></span>
                             </div>
                         </button>
                     </div>
@@ -114,60 +131,62 @@ onUnmounted(() => {
             leave-to-class="opacity-0"
         >
             <div v-if="showingNavigationDropdown" 
-                 class="fixed inset-0 z-[60] bg-slate-950/60 backdrop-blur-md md:hidden"
+                 class="fixed inset-0 z-[60] bg-black/40 backdrop-blur-md md:hidden"
                  @click="showingNavigationDropdown = false"
             ></div>
         </Transition>
 
         <!-- Mobile Drawer Content -->
         <Transition
-            enter-active-class="transition duration-500 cubic-bezier(0.4, 0, 0.2, 1)"
+            enter-active-class="transition duration-700 cubic-bezier(0.4, 0, 0.2, 1)"
             enter-from-class="translate-x-full"
             enter-to-class="translate-x-0"
-            leave-active-class="transition duration-400 cubic-bezier(0.4, 0, 0.2, 1)"
+            leave-active-class="transition duration-500 cubic-bezier(0.4, 0, 0.2, 1)"
             leave-from-class="translate-x-0"
             leave-to-class="translate-x-full"
         >
             <div v-if="showingNavigationDropdown" 
-                 class="fixed top-0 right-0 bottom-0 w-[80%] max-w-sm z-[70] glass-dark border-l border-white/10 shadow-[-20px_0_100px_rgba(0,0,0,0.5)] md:hidden overflow-y-auto"
+                 class="fixed top-0 right-0 bottom-0 w-[85%] max-w-md z-[70] glass border-l border-[rgb(var(--border-main))] shadow-royale md:hidden overflow-y-auto"
             >
-                <div class="p-8 space-y-12">
+                <div class="p-10 space-y-12">
                     <!-- Brand -->
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
-                            <ApplicationLogo class="h-8 w-auto fill-current text-indigo-500" />
-                            <span class="font-black text-xl tracking-tighter text-white">VIDEY<span class="text-indigo-500">VIEW</span></span>
+                            <ApplicationLogo class="h-9 w-auto fill-current text-indigo-500" />
+                            <span class="text-xl font-black italic tracking-tighter uppercase" :style="{ color: 'rgb(var(--text-main))' }">VIDEYVIEW</span>
                         </div>
-                        <button @click="showingNavigationDropdown = false" class="p-2 text-slate-400 hover:text-white transition">
-                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        <button @click="showingNavigationDropdown = false" class="p-2.5 rounded-2xl bg-[rgb(var(--bg-input))] border border-[rgb(var(--border-main))] text-[rgb(var(--text-muted))] hover:text-indigo-400 transition active:scale-90">
+                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                     </div>
 
                     <!-- User Profile Quick View -->
-                    <div v-if="page.props.auth.user" class="p-6 rounded-[32px] bg-gradient-to-br from-indigo-500/10 to-transparent border border-indigo-500/20 shadow-inner">
-                        <div class="flex items-center gap-4 mb-4">
-                            <div class="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-xl shadow-xl">👤</div>
+                    <div v-if="page.props.auth.user" class="p-8 rounded-[40px] bg-indigo-500/5 border border-indigo-500/10 shadow-inner">
+                        <div class="flex items-center gap-5 mb-6">
+                            <div class="w-14 h-14 rounded-[20px] bg-indigo-600 flex items-center justify-center text-xl shadow-2xl relative">
+                                👤
+                                <div v-if="page.props.auth.user.has_active_subscription" class="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center text-[10px] border-2 border-[rgb(var(--bg-surface))]">👑</div>
+                            </div>
                             <div class="overflow-hidden">
-                                <h3 class="font-black text-white truncate uppercase tracking-tight">{{ page.props.auth.user.name }}</h3>
-                                <div class="flex items-center gap-2">
-                                    <span v-if="page.props.auth.user.has_active_subscription" class="text-[8px] font-black bg-gradient-to-r from-amber-400 to-amber-600 text-amber-950 px-2 py-0.5 rounded-full uppercase tracking-tighter">Gold Member</span>
-                                    <span class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">{{ page.props.auth.user.is_admin ? 'Staff' : 'Viewer' }}</span>
+                                <h3 class="text-lg font-black text-[rgb(var(--text-main))] truncate tracking-tight uppercase">{{ page.props.auth.user.name }}</h3>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span v-if="page.props.auth.user.has_active_subscription" class="text-[8px] font-black bg-gradient-to-r from-amber-400 to-amber-600 text-amber-950 px-2 py-0.5 rounded-full uppercase">GOLD MEMBER</span>
+                                    <span class="text-[9px] text-[rgb(var(--text-muted))] font-black uppercase tracking-widest">{{ page.props.auth.user.is_admin ? 'STAFF' : 'MEMBER' }}</span>
                                 </div>
                             </div>
                         </div>
-                        <div class="h-px bg-white/5 w-full mb-4"></div>
-                        <Link :href="route('dashboard')" class="text-xs font-black text-indigo-400 hover:text-indigo-300 transition uppercase tracking-widest flex items-center gap-2" @click="showingNavigationDropdown = false">
-                             My Profile <span>→</span>
+                        <Link :href="route('dashboard')" class="btn-premium w-full flex items-center justify-center gap-2" @click="showingNavigationDropdown = false">
+                             MY DASHBOARD <span>→</span>
                         </Link>
                     </div>
                                     <!-- Navigation Links -->
                     <div class="flex flex-col gap-10">
                         <!-- Top Navigation -->
                         <div>
-                            <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 ps-2">Main Menu</div>
+                            <div class="text-[10px] font-black text-[rgb(var(--text-muted))] uppercase tracking-widest mb-4 ps-2">Main Menu</div>
                             <Link :href="route('home')" @click="showingNavigationDropdown = false"
                                   class="group flex items-center justify-between text-2xl font-black italic tracking-tighter transition-all hover:translate-x-2" 
-                                  :class="route().current('home') && !page.props.currentFilter ? 'text-indigo-400' : 'text-white'">
+                                  :class="route().current('home') && !page.props.currentFilter ? 'text-indigo-400' : 'text-[rgb(var(--text-main))]'">
                                 DISCOVER ALL
                             </Link>
 
@@ -182,13 +201,13 @@ onUnmounted(() => {
 
                         <!-- Categorization -->
                         <div>
-                            <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 ps-2">Explore Categories</div>
+                            <div class="text-[10px] font-black text-[rgb(var(--text-muted))] uppercase tracking-widest mb-4 ps-2">Explore Categories</div>
                             <div class="flex flex-col gap-5 ps-2">
                                 <Link v-for="cat in ['all', 'trending', 'free', 'premium']" :key="cat" 
                                     :href="route('home', { filter: cat })" 
                                     @click="showingNavigationDropdown = false"
                                     class="flex items-center justify-between text-lg font-black uppercase tracking-widest transition-all hover:text-indigo-400"
-                                    :class="(page.props.currentFilter === cat) || (cat === 'all' && !page.props.currentFilter) ? 'text-indigo-400 scale-105' : 'text-slate-400'"
+                                    :class="(page.props.currentFilter === cat) || (cat === 'all' && !page.props.currentFilter) ? 'text-indigo-400 scale-105' : 'text-[rgb(var(--text-muted))]'"
                                 >
                                     <span>{{ cat }}</span>
                                     <span v-if="cat === 'premium'" class="text-[9px] bg-amber-600 text-white px-2 py-0.5 rounded-full shadow-lg shadow-amber-600/20">👑</span>
@@ -197,12 +216,12 @@ onUnmounted(() => {
                         </div>
 
                         <!-- Account Section -->
-                        <div class="h-px bg-white/5 w-full"></div>
+                        <div class="h-px bg-[rgb(var(--border-main))] w-full"></div>
                         
                         <template v-if="page.props.auth.user">
                             <Link v-if="page.props.auth.user.is_admin" :href="route('admin.videos.index')" @click="showingNavigationDropdown = false"
-                                  class="flex items-center gap-4 text-lg font-bold text-slate-400 hover:text-white transition group">
-                                <span class="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-sm group-hover:bg-indigo-500/20 transition-colors">🛠</span>
+                                  class="flex items-center gap-4 text-lg font-bold text-[rgb(var(--text-muted))] hover:text-indigo-400 transition group">
+                                <span class="w-10 h-10 rounded-2xl bg-indigo-500/5 flex items-center justify-center text-sm group-hover:bg-indigo-500/20 transition-colors">🛠</span>
                                 Admin Terminal
                             </Link>
 
@@ -214,8 +233,8 @@ onUnmounted(() => {
                         </template>
                         <template v-else>
                             <Link :href="route('login')" @click="showingNavigationDropdown = false"
-                                  class="flex items-center gap-4 text-xl font-black text-slate-400 hover:text-white transition uppercase tracking-tighter group">
-                                <span class="w-12 h-12 rounded-[20px] bg-white/5 flex items-center justify-center text-sm group-hover:bg-white/10 transition-colors">🔑</span>
+                                  class="flex items-center gap-4 text-xl font-black text-[rgb(var(--text-muted))] hover:text-indigo-400 transition uppercase tracking-tighter group">
+                                <span class="w-12 h-12 rounded-[20px] bg-indigo-500/5 flex items-center justify-center text-sm group-hover:bg-indigo-500/10 transition-colors">🔑</span>
                                 Login
                             </Link>
                             <Link :href="route('register')" @click="showingNavigationDropdown = false"
@@ -227,31 +246,31 @@ onUnmounted(() => {
 
                     <!-- Footer / Version -->
                     <div class="pt-8 flex flex-col items-center gap-4">
-                         <div class="h-px bg-white/5 w-12"></div>
+                         <div class="h-px bg-[rgb(var(--border-main))] w-12"></div>
                          <div class="flex items-center gap-2 opacity-20 filter grayscale">
                             <ApplicationLogo class="h-5 w-auto fill-current" />
-                            <span class="text-[9px] font-black uppercase tracking-[0.3em]">VideyView 4.0</span>
+                            <span class="text-[9px] font-black uppercase tracking-[0.3em] font-muted">VideyView 5.0</span>
                          </div>
                     </div>
                 </div>
             </div>
         </Transition>
 
-        <main class="pt-24 pb-12">
+        <main class="pt-24 pb-12 transition-all duration-500">
             <div v-if="$slots.header" class="max-w-7xl mx-auto px-6 mb-12">
                 <slot name="header" />
             </div>
             <slot />
         </main>
         
-        <footer class="mt-auto py-12 border-t border-slate-900 bg-slate-950">
+        <footer class="mt-auto py-12 border-t border-[rgb(var(--border-main))] bg-[rgb(var(--bg-main))] transition-colors duration-500">
             <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
                 <div class="flex items-center gap-2 opacity-50">
-                    <ApplicationLogo class="h-6 w-auto fill-current" />
-                    <span class="font-black tracking-tighter text-sm uppercase">VideyView</span>
+                    <ApplicationLogo class="h-6 w-auto fill-current text-[rgb(var(--text-main))]" />
+                    <span class="font-black tracking-tighter text-sm uppercase text-[rgb(var(--text-main))]">VideyView</span>
                 </div>
-                <p class="text-slate-600 text-sm">&copy; 2026 Crafted with ❤️ for VideyView.</p>
-                <div class="flex gap-6 text-slate-500 text-sm font-bold">
+                <p class="text-[rgb(var(--text-muted))] text-sm">&copy; 2026 Crafted with ❤️ for VideyView.</p>
+                <div class="flex gap-6 text-[rgb(var(--text-muted))] text-sm font-bold">
                     <a href="#" class="hover:text-indigo-400 transition">Telegram</a>
                     <a href="#" class="hover:text-indigo-400 transition">Twitter</a>
                     <a href="#" class="hover:text-indigo-400 transition">Privacy</a>
@@ -276,7 +295,8 @@ onUnmounted(() => {
             />
         </template>
 
-        <AntiAdblockGuard />
+        <!-- Anti-Adblock Guard (Public Pages Only) -->
+        <AntiAdblockGuard v-if="$page.props.anti_adblock_enabled && !$page.props.auth.user?.is_admin" />
     </div>
 </template>
 

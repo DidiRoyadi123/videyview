@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
@@ -22,12 +22,40 @@ watch(() => page.props.flash, (flash) => {
 
 const showingNavigationDropdown = ref(false);
 
+// Theme Engine v3.0
+const activeTheme = ref(localStorage.getItem('admin_aura') || 'indigo');
+const themes = {
+    indigo: { primary: '#6366f1', glow: 'rgba(99, 102, 241, 0.15)' },
+    emerald: { primary: '#10b981', glow: 'rgba(16, 185, 129, 0.15)' },
+    amber: { primary: '#f59e0b', glow: 'rgba(245, 158, 11, 0.15)' },
+    rose: { primary: '#f43f5e', glow: 'rgba(244, 63, 94, 0.15)' }
+};
+
+const applyTheme = (themeName) => {
+    activeTheme.value = themeName;
+    localStorage.setItem('admin_aura', themeName);
+};
+
+onMounted(() => {
+    if (!localStorage.getItem('admin_aura')) {
+        localStorage.setItem('admin_aura', 'indigo');
+    }
+});
+
 useAutoLogout(30); // 30 minutes idle timeout
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-950 text-slate-200">
-        <nav class="glass-dark border-b border-white/5 sticky top-0 z-50">
+    <div 
+        class="min-h-screen transition-colors duration-500"
+        :style="{
+            backgroundColor: 'rgb(var(--bg-main))',
+            color: 'rgb(var(--text-main))',
+            '--brand-color': themes[activeTheme].primary,
+            '--brand-glow': themes[activeTheme].glow
+        }"
+    >
+        <nav class="glass border-b border-[rgb(var(--border-main))] sticky top-0 z-50 transition-colors duration-500">
             <!-- Primary Navigation Menu -->
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="flex h-16 justify-between">
@@ -35,40 +63,59 @@ useAutoLogout(30); // 30 minutes idle timeout
                         <!-- Logo -->
                         <div class="flex shrink-0 items-center">
                             <Link :href="route('dashboard')">
-                                <ApplicationLogo class="block h-8 w-auto fill-current text-indigo-500" />
+                                <ApplicationLogo class="block h-8 w-auto fill-current brand-text-color" />
                             </Link>
                         </div>
 
                         <!-- Navigation Links -->
                         <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                             <NavLink :href="route('dashboard')" :active="route().current('dashboard')">
-                                Dashboard
+                                Dasbor
                             </NavLink>
                             <NavLink v-if="$page.props.auth.user.is_admin" :href="route('admin.videos.index')" :active="route().current('admin.videos.index')">
-                                Videos
+                                Video
+                            </NavLink>
+                            <NavLink v-if="$page.props.auth.user.is_admin" :href="route('admin.videos.bulk-sync')" :active="route().current('admin.videos.bulk-sync')">
+                                Sinkronisasi Massal
                             </NavLink>
                             <NavLink v-if="$page.props.auth.user.is_admin" :href="route('admin.videos.extractor')" :active="route().current('admin.videos.extractor')">
-                                Extractor
+                                Ekstraktor
                             </NavLink>
                             <NavLink v-if="$page.props.auth.user.is_admin" :href="route('admin.users.index')" :active="route().current('admin.users.*')">
-                                Users
+                                Pengguna
                             </NavLink>
                             <NavLink v-if="$page.props.auth.user.is_admin" :href="route('admin.settings.index')" :active="route().current('admin.settings.*')">
-                                Ads
+                                Konfigurasi
+                            </NavLink>
+                            <NavLink v-if="$page.props.auth.user.is_admin" :href="route('admin.logs.index')" :active="route().current('admin.logs.*')">
+                                Log Sistem
                             </NavLink>
                             <NavLink :href="route('home')">
-                                Public Site
+                                Situs Publik
                             </NavLink>
                         </div>
                     </div>
 
                     <div class="hidden sm:ms-6 sm:flex sm:items-center">
+                        <!-- Theme Toggle Quick Menu -->
+                        <div class="flex items-center gap-2 mr-6 px-3 py-1 bg-white/5 rounded-full border border-white/5">
+                            <button 
+                                v-for="(theme, name) in themes" 
+                                :key="name"
+                                @click="applyTheme(name)"
+                                class="w-4 h-4 rounded-full transition-all duration-300 hover:scale-125"
+                                :class="{'ring-2 ring-white scale-110 shadow-lg shadow-white/10': activeTheme === name}"
+                                :style="{ backgroundColor: theme.primary }"
+                                :title="'Aura ' + name"
+                            ></button>
+                        </div>
+
                         <!-- Settings Dropdown -->
                         <div class="relative ms-3">
                             <Dropdown align="right" width="48">
                                 <template #trigger>
                                     <span class="inline-flex rounded-md">
-                                        <button type="button" class="btn-premium flex items-center gap-2 !py-2 !px-4 !text-xs">
+                                        <button type="button" class="btn-aura flex items-center gap-2 !py-2 !px-4 !text-xs">
                                             {{ $page.props.auth.user.name }}
                                             <svg class="-me-0.5 ms-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -79,8 +126,8 @@ useAutoLogout(30); // 30 minutes idle timeout
 
                                 <template #content>
                                     <div class="glass-dark border border-white/5 rounded-xl overflow-hidden mt-2 p-1">
-                                        <DropdownLink :href="route('profile.edit')" class="!text-slate-300 hover:!bg-white/5 rounded-lg"> Profile </DropdownLink>
-                                        <DropdownLink :href="route('logout')" method="post" as="button" class="!text-red-400 hover:!bg-red-500/10 rounded-lg"> Log Out </DropdownLink>
+                                        <DropdownLink :href="route('profile.edit')" class="!text-slate-300 hover:!bg-white/5 rounded-lg"> Profil </DropdownLink>
+                                        <DropdownLink :href="route('logout')" method="post" as="button" class="!text-red-400 hover:!bg-red-500/10 rounded-lg"> Keluar </DropdownLink>
                                     </div>
                                 </template>
                             </Dropdown>
@@ -102,12 +149,14 @@ useAutoLogout(30); // 30 minutes idle timeout
             <!-- Responsive Navigation Menu -->
             <div :class="{'block': showingNavigationDropdown, 'hidden': !showingNavigationDropdown}" class="sm:hidden glass-dark border-t border-white/5">
                 <div class="space-y-1 pb-3 pt-2">
-                    <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')"> Dashboard </ResponsiveNavLink>
-                    <ResponsiveNavLink v-if="$page.props.auth.user.is_admin" :href="route('admin.videos.index')" :active="route().current('admin.videos.index')"> Manage Videos </ResponsiveNavLink>
-                    <ResponsiveNavLink v-if="$page.props.auth.user.is_admin" :href="route('admin.videos.extractor')" :active="route().current('admin.videos.extractor')"> Link Extractor </ResponsiveNavLink>
-                    <ResponsiveNavLink v-if="$page.props.auth.user.is_admin" :href="route('admin.users.index')" :active="route().current('admin.users.*')"> Manage Users </ResponsiveNavLink>
-                    <ResponsiveNavLink v-if="$page.props.auth.user.is_admin" :href="route('admin.settings.index')" :active="route().current('admin.settings.*')"> Ad Settings </ResponsiveNavLink>
-                    <ResponsiveNavLink :href="route('home')"> Public Site </ResponsiveNavLink>
+                    <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')"> Dasbor </ResponsiveNavLink>
+                    <ResponsiveNavLink v-if="$page.props.auth.user.is_admin" :href="route('admin.videos.index')" :active="route().current('admin.videos.index')"> Kelola Video </ResponsiveNavLink>
+                    <ResponsiveNavLink v-if="$page.props.auth.user.is_admin" :href="route('admin.videos.bulk-sync')" :active="route().current('admin.videos.bulk-sync')"> Sinkronisasi Massal Manual </ResponsiveNavLink>
+                    <ResponsiveNavLink v-if="$page.props.auth.user.is_admin" :href="route('admin.videos.extractor')" :active="route().current('admin.videos.extractor')"> Ekstraktor Tautan </ResponsiveNavLink>
+                    <ResponsiveNavLink v-if="$page.props.auth.user.is_admin" :href="route('admin.users.index')" :active="route().current('admin.users.*')"> Kelola Pengguna </ResponsiveNavLink>
+                    <ResponsiveNavLink v-if="$page.props.auth.user.is_admin" :href="route('admin.settings.index')" :active="route().current('admin.settings.*')"> Konfigurasi Sistem </ResponsiveNavLink>
+                    <ResponsiveNavLink v-if="$page.props.auth.user.is_admin" :href="route('admin.logs.index')" :active="route().current('admin.logs.*')"> Log Sistem </ResponsiveNavLink>
+                    <ResponsiveNavLink :href="route('home')"> Situs Publik </ResponsiveNavLink>
                 </div>
 
                 <!-- Responsive Settings Options -->
@@ -118,8 +167,8 @@ useAutoLogout(30); // 30 minutes idle timeout
                     </div>
 
                     <div class="mt-3 space-y-1">
-                        <ResponsiveNavLink :href="route('profile.edit')"> Profile </ResponsiveNavLink>
-                        <ResponsiveNavLink :href="route('logout')" method="post" as="button"> Log Out </ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('profile.edit')"> Profil </ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('logout')" method="post" as="button"> Keluar </ResponsiveNavLink>
                     </div>
                 </div>
             </div>
@@ -140,8 +189,34 @@ useAutoLogout(30); // 30 minutes idle timeout
 </template>
 
 <style>
-/* Global Nav Overrides for Dark Mode */
+/* Global Aura Overrides */
+:root {
+    --brand-color: #6366f1;
+    --brand-glow: rgba(99, 102, 241, 0.15);
+}
+
+.brand-bg-color { background-color: var(--brand-color) !important; }
+.brand-text-color { color: var(--brand-color) !important; }
+.brand-border-color { border-color: var(--brand-color) !important; }
+
 .nav-link-active {
-    @apply text-indigo-400 border-indigo-500 !important;
+    color: var(--brand-color) !important;
+    border-color: var(--brand-color) !important;
+}
+
+.btn-aura {
+    @apply bg-white/5 text-slate-200 border border-white/10 rounded-xl transition-all duration-300;
+    box-shadow: 0 4px 12px var(--brand-glow);
+}
+
+.btn-aura:hover {
+    @apply bg-white/10 border-[var(--brand-color)];
+    box-shadow: 0 4px 20px var(--brand-glow);
+}
+
+/* Override premium buttons to use aura */
+.btn-premium {
+    background: linear-gradient(135deg, var(--brand-color) 0%, #1e293b 100%) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
 }
 </style>

@@ -20,16 +20,47 @@ const props = defineProps({
 const adContainer = ref(null);
 const injectedElements = ref([]);
 
+const page = usePage();
+
+const isRestrictedRoute = () => {
+    try {
+        const routeName = window.route().current();
+        return routeName && (
+            routeName.startsWith('admin.') || 
+            routeName === 'dashboard' || 
+            routeName.startsWith('login') || 
+            routeName.startsWith('register') || 
+            routeName.startsWith('password.')
+        );
+    } catch (e) {
+        return false;
+    }
+};
+
 const cleanUp = () => {
+    // 1. Remove tracked elements
     injectedElements.value.forEach(el => {
         if (el && el.parentNode) {
             el.parentNode.removeChild(el);
         }
     });
-    injectedElements.value = [];
+
+    // 2. Clear container
     if (adContainer.value) {
         adContainer.value.innerHTML = '';
     }
+
+    // 3. Aggressive: Remove any stray Adsterra/Popunder elements from head/body
+    // This handles scripts that might have spawned children before being removed
+    if (props.type === 'popunder' || props.type === 'social_bar') {
+        const strayScripts = document.querySelectorAll('script[src*="system-v4.js"], script[src*="recollectsideway.com"]');
+        strayScripts.forEach(s => s.remove());
+
+        const strayIframes = document.querySelectorAll('iframe[src*="exdynsrv.com"], iframe[id*="aswgv"]');
+        strayIframes.forEach(f => f.remove());
+    }
+
+    injectedElements.value = [];
 };
 
 const injectIsolated = () => {
@@ -149,7 +180,7 @@ const handleInjection = () => {
     const page = usePage();
     const user = page.props.auth.user;
     
-    if (user?.is_admin || user?.has_active_subscription) {
+    if (user?.is_admin || user?.has_active_subscription || isRestrictedRoute()) {
         cleanUp();
         return;
     }

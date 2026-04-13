@@ -39,6 +39,7 @@ class VideoController extends Controller
         $allStatuses = Video::whereNotNull('hosting_status')->pluck('hosting_status');
         $hostStats = [
             'streamtape' => 0,
+            'doodstream' => 0,
         ];
 
         foreach ($allStatuses as $status) {
@@ -71,10 +72,11 @@ class VideoController extends Controller
             'total_active_mirrors' => Video::where('hosting_status', 'like', '%"uploading"%')
                 ->orWhere('hosting_status', 'like', '%"pending"%')
                 ->count(),
-            'total_mirrored' => Video::where('hosting_status', 'like', '%streamtape":"success%')->count(),
+            'total_mirrored' => Video::where('hosting_status', 'like', '%"success"%')->count(),
             'total_mirror_pending' => Video::where('download_status', 'completed')
                 ->where(function($q) {
-                    $q->whereNull('hosting_status')->orWhere('hosting_status', 'not like', '%streamtape":"success%');
+                    $q->whereNull('hosting_status')
+                      ->orWhere('hosting_status', 'not like', '%"success"%');
                 })->count(),
             'host_stats' => $hostStats,
             'recent_activity' => $recentActivity,
@@ -119,12 +121,9 @@ class VideoController extends Controller
                 'is_premium' => $is_premium,
             ]);
 
-            // Generate Thumbnail for local upload
-            $fullPath = storage_path('app/public/' . $path);
-            \App\Helpers\VideoHelper::generateThumbnail($video, $fullPath);
-
             // Auto-chain: mirroring to Streamtape after manual PC upload
             \App\Jobs\DistributeToHostJob::dispatch($video, 'streamtape');
+            \App\Jobs\DistributeToHostJob::dispatch($video, 'videy');
         } else {
             // URL Upload (Same as before)
             $url = $request->url;
@@ -148,7 +147,7 @@ class VideoController extends Controller
 
         $this->applyAutoFreeLogic($video);
 
-        return back()->with('success', 'Video added successfully.');
+        return back()->with('success', 'Video berhasil ditambahkan.');
     }
 
     public function storeBulk(Request $request)
@@ -188,7 +187,7 @@ class VideoController extends Controller
             fclose($handle);
         }
 
-        return back()->with('success', 'Bulk upload completed.');
+        return back()->with('success', 'Unggahan massal selesai.');
     }
 
     public function bulkStoreFromUrls(Request $request)
@@ -214,10 +213,10 @@ class VideoController extends Controller
                 'is_premium' => $request->is_premium ?? true,
             ]);
 
-            // Auto-chain: Trigger download for Videy links immediately
+            // Just mark pending for sync.py manual download
             if (Str::contains($video->url, 'videy.co')) {
-                \App\Jobs\DownloadVideoJob::dispatch($video);
                 $video->update(['download_status' => 'pending']);
+                \App\Jobs\DistributeRemoteHostJob::dispatch($video, 'streamtape', $video->url);
             }
             $count++;
         }
@@ -258,18 +257,13 @@ class VideoController extends Controller
             'is_premium' => filter_var($is_premium, FILTER_VALIDATE_BOOLEAN),
         ]);
 
-        // Auto-chain: Trigger download for Videy links immediately
+        // Just mark pending for sync.py manual download
         if (Str::contains($video->url, 'videy.co')) {
-            \App\Jobs\DownloadVideoJob::dispatch($video);
             $video->update(['download_status' => 'pending']);
+            \App\Jobs\DistributeRemoteHostJob::dispatch($video, 'streamtape', $video->url);
         }
 
         $this->applyAutoFreeLogic($video);
-
-        // Auto-chain: Trigger download for Videy links immediately
-        if (Str::contains($video->url, 'videy.co')) {
-            \App\Jobs\DownloadVideoJob::dispatch($video);
-        }
     }
 
     protected function applyAutoFreeLogic($video)
@@ -304,7 +298,7 @@ class VideoController extends Controller
         \Illuminate\Support\Facades\Cache::forget("video_show_{$video->slug}");
         \Illuminate\Support\Facades\Cache::forget('admin_stats');
         
-        return back()->with('success', 'Video and associated files deleted.');
+        return back()->with('success', 'Video dan file terkait berhasil dihapus.');
     }
 
     public function bulkDestroy(Request $request)
@@ -314,15 +308,15 @@ class VideoController extends Controller
             'ids.*' => 'exists:videos,id',
         ]);
 
-        Video::whereIn('id', $request->ids)->delete();
+        Video::destroy($request->ids);
 
-        return back()->with('success', count($request->ids) . ' videos deleted successfully.');
+        return back()->with('success', count($request->ids) . ' video berhasil dihapus.');
     }
 
     public function download(Video $video)
     {
         \App\Jobs\DownloadVideoJob::dispatch($video);
-        return back()->with('success', 'Video download queued.');
+        return back()->with('success', 'Unduhan video telah masuk antrean.');
     }
 
     public function bulkDownload(Request $request)
@@ -337,7 +331,7 @@ class VideoController extends Controller
             \App\Jobs\DownloadVideoJob::dispatch($video);
         }
 
-        return back()->with('success', count($request->ids) . ' video downloads queued.');
+        return back()->with('success', count($request->ids) . ' antrean unduhan video dimulai.');
     }
 
     public function downloadAllPending()
@@ -353,19 +347,21 @@ class VideoController extends Controller
             $count++;
         }
 
-        return back()->with('success', "$count pending videos have been queued for download.");
+        return back()->with('success', "$count video tertunda telah masuk antrean unduhan.");
     }
 
     public function progress(Request $request)
     {
         $ids = $request->input('ids', []);
         $progress = [];
+        $uploadProgress = [];
         $mirroring = [];
 
         $videos = Video::whereIn('id', $ids)->get(['id', 'hosting_status']);
 
         foreach ($ids as $id) {
             $progress[$id] = \Illuminate\Support\Facades\Cache::get('video_download_' . $id, 0);
+            $uploadProgress[$id] = \Illuminate\Support\Facades\Cache::get('video_upload_' . $id, 0);
             
             $video = $videos->where('id', $id)->first();
             if ($video) {
@@ -373,17 +369,72 @@ class VideoController extends Controller
             }
         }
 
+        // Compute global averages
+        $activeDownloadIds = Video::where('download_status', 'downloading')->pluck('id');
+        $activeMirrorIds = Video::where('hosting_status', 'like', '%"uploading"%')
+            ->orWhere('hosting_status', 'like', '%"pending"%')
+            ->pluck('id');
+
+        $globalDownloadAvg = 0;
+        if ($activeDownloadIds->count() > 0) {
+            $sum = 0;
+            $countValid = 0;
+            foreach ($activeDownloadIds as $adId) {
+                $val = \Illuminate\Support\Facades\Cache::get('video_download_' . $adId, 0);
+                if ($val > 0) { $sum += $val; $countValid++; }
+            }
+            $globalDownloadAvg = $countValid ? round($sum / $countValid) : 0;
+        }
+
+        $globalUploadAvg = 0;
+        if ($activeMirrorIds->count() > 0) {
+            $sum = 0;
+            $countValid = 0;
+            foreach ($activeMirrorIds as $amId) {
+                $val = \Illuminate\Support\Facades\Cache::get('video_upload_' . $amId, 0);
+                if ($val > 0) { $sum += $val; $countValid++; }
+            }
+            $globalUploadAvg = $countValid ? round($sum / $countValid) : 0;
+        }
+
+        $allStatuses = Video::whereNotNull('hosting_status')->pluck('hosting_status');
+        $hostStats = [
+            'streamtape' => 0,
+            'doodstream' => 0,
+        ];
+        foreach ($allStatuses as $status) {
+            if (is_array($status)) {
+                foreach ($status as $host => $s) {
+                    if ($s === 'success' && isset($hostStats[$host])) {
+                        $hostStats[$host]++;
+                    }
+                }
+            }
+        }
+
         return response()->json([
             'progress' => $progress,
+            'uploadProgress' => $uploadProgress,
             'mirroring' => $mirroring,
             'global_stats' => [
                 'total_active_downloads' => Video::where('download_status', 'downloading')->count(),
                 'total_active_mirrors' => Video::where('hosting_status', 'like', '%"uploading"%')
                     ->orWhere('hosting_status', 'like', '%"pending"%')
                     ->count(),
-                'total_mirrored' => Video::where('hosting_status', 'like', '%streamtape":"success%')->count(),
+                'total_mirrored' => Video::where('hosting_status', 'like', '%"success"%')->count(),
                 'total_local' => Video::where('download_status', 'completed')->count(),
-            ]
+                'total_download_pending' => Video::where(function($q) {
+                    $q->where('download_status', '!=', 'completed')
+                      ->orWhereNull('download_status');
+                })->whereNotNull('url')->count(),
+                'global_download_avg' => $globalDownloadAvg,
+                'global_upload_avg' => $globalUploadAvg,
+                'host_stats' => $hostStats,
+            ],
+            'recent_activity' => Video::whereNotNull('hosting_status')
+                ->latest('updated_at')
+                ->take(5)
+                ->get(['id', 'title', 'slug', 'hosting_status', 'updated_at'])
         ]);
     }
 
@@ -415,7 +466,7 @@ class VideoController extends Controller
             Cache::forget("video_show_{$video->slug}");
             Cache::forget('admin_stats');
 
-            return back()->with('success', 'Video file found and synchronized.');
+            return back()->with('success', 'File video ditemukan dan disinkronkan.');
         }
 
         $video->update([
@@ -489,7 +540,7 @@ class VideoController extends Controller
 
         \Illuminate\Support\Facades\Cache::forget('admin_stats');
 
-        return to_route('admin.videos.index')->with('success', "Flash Audit Completed. Found $synced local videos. ($missing videos are missing from storage).");
+        return to_route('admin.videos.index')->with('success', "Audit Flash Selesai. Ditemukan $synced video lokal. ($missing video hilang dari penyimpanan).");
     }
 
     public function exportDownloadList()
@@ -519,7 +570,7 @@ class VideoController extends Controller
 
         \App\Models\Setting::setValue($request->key, $request->value);
 
-        return back()->with('success', 'Setting updated successfully.');
+        return back()->with('success', 'Pengaturan berhasil diperbarui.');
     }
 
     public function distribute(Video $video, Request $request)
@@ -533,7 +584,7 @@ class VideoController extends Controller
             \App\Jobs\DistributeToHostJob::dispatch($video, $h);
         }
 
-        return to_route('admin.videos.index')->with('success', 'Mirroring jobs dispatched.');
+        return to_route('admin.videos.index')->with('success', 'Tugas sinkronisasi dikirim.');
     }
 
     public function mirrorBulk(Request $request)
@@ -546,7 +597,7 @@ class VideoController extends Controller
             '--limit' => 1000 // Process up to 1000 at a time for the full backlog
         ]);
 
-        return to_route('admin.videos.index')->with('success', 'Bulk mirroring queue started for all missing videos.');
+        return to_route('admin.videos.index')->with('success', 'Antrean sinkronisasi massal dimulai untuk semua video yang hilang.');
     }
     public function mirrorSelected(Request $request)
     {
@@ -572,7 +623,76 @@ class VideoController extends Controller
             }
         }
 
-        return back()->with('success', "{$count} mirroring jobs dispatched for " . count($request->ids) . " videos.");
+        return back()->with('success', "{$count} tugas sinkronisasi dikirim untuk " . count($request->ids) . " video.");
+    }
+
+    public function checkHealth()
+    {
+        $videos = Video::all();
+        foreach ($videos as $video) {
+            \App\Jobs\CheckVideoHealthJob::dispatch($video);
+        }
+
+        return redirect()->back()->with('success', 'Tugas pemeriksaan kesehatan dikirim untuk ' . $videos->count() . ' video.');
+    }
+
+    public function exportSocialLinks(Request $request)
+    {
+        // ... (existing export logic)
+    }
+
+    /**
+     * Display the Bulk Sync Manual Links page.
+     */
+    public function bulkSyncView()
+    {
+        return Inertia::render('Admin/Videos/BulkSync');
+    }
+
+    /**
+     * Parse and sync pasted Doodstream links.
+     */
+    public function bulkSyncLinks(Request $request)
+    {
+        $request->validate([
+            'content' => 'required|string',
+        ]);
+
+        $content = $request->input('content');
+        // Split by lines and clean
+        $lines = explode("\n", $content);
+        
+        $currentMarker = null;
+        $matchedCount = 0;
+        $multiHost = app(\App\Services\MultiHostService::class);
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) continue;
+
+            // 1. Detect Marker: <!-- video-ID --> or <!-- ID -->
+            if (preg_match('/<!--\s*(?:video-)?([a-z0-9-]+)\s*-->/i', $line, $matches)) {
+                $currentMarker = $matches[1];
+                continue;
+            }
+
+            // 2. Detect URL (only if we have a marker waiting)
+            if ($currentMarker && filter_var($line, FILTER_VALIDATE_URL)) {
+                // Find video using Case-Insensitive Smart Matching (Slug or URL)
+                $video = Video::whereRaw('LOWER(slug) LIKE ?', ["%$currentMarker%"])
+                    ->orWhereRaw('LOWER(url) LIKE ?', ["%$currentMarker%"])
+                    ->first();
+
+                if ($video) {
+                    $multiHost->updateStatus($video, 'doodstream', 'success', $line);
+                    $matchedCount++;
+                }
+                
+                // Clear marker for next pair
+                $currentMarker = null;
+            }
+        }
+
+        return back()->with('success', "Berhasil mencocokkan dan menyinkronkan $matchedCount tautan Doodstream.");
     }
 }
-

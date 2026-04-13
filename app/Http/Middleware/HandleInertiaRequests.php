@@ -3,6 +3,8 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
+use App\Models\Setting;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -40,20 +42,63 @@ class HandleInertiaRequests extends Middleware
                     'has_active_subscription' => $request->user()->hasActiveSubscription(),
                 ] : null,
             ],
-            'ads' => [
-                'banner_728x90' => ($ad_banner_728x90 = \App\Models\Setting::getValue('ad_banner_728x90')),
-                'social_bar' => ($ad_social_bar = \App\Models\Setting::getValue('ad_social_bar')),
-                'banner_468x60' => ($ad_banner_468x60 = \App\Models\Setting::getValue('ad_banner_468x60')),
-                'native_banner' => ($ad_native_banner = \App\Models\Setting::getValue('ad_native_banner')),
-                'banner_300x250' => ($ad_banner_300x250 = \App\Models\Setting::getValue('ad_banner_300x250')),
-                'smartlink' => ($ad_smartlink = \App\Models\Setting::getValue('ad_smartlink')),
-                'popunder' => ($ad_popunder = \App\Models\Setting::getValue('ad_popunder')),
-            ],
+            'anti_adblock_enabled' => Setting::getValue('anti_adblock_enabled', '1') === '1',
+            'ads' => function() {
+                // Determine if we should show ads on the current request
+                $user = Auth::user();
+                $isAdmin = $user && $user->is_admin;
+                
+                // Get current route name
+                $routeName = \Route::currentRouteName();
+                $isAdminRoute = $routeName && (str_starts_with($routeName, 'admin.') || $routeName === 'dashboard');
+                $isAuthRoute = $routeName && (str_starts_with($routeName, 'login') || str_starts_with($routeName, 'register') || str_starts_with($routeName, 'password.'));
+
+                // Block ads for admins, total premium users, and on admin/auth routes
+                if ($isAdmin || $isAdminRoute || $isAuthRoute) {
+                    return null;
+                }
+
+                return [
+                    'banner_728x90' => Setting::getValue('ad_banner_728x90'),
+                    'social_bar' => Setting::getValue('ad_social_bar'),
+                    'banner_468x60' => Setting::getValue('ad_banner_468x60'),
+                    'native_banner' => Setting::getValue('ad_native_banner'),
+                    'banner_300x250' => Setting::getValue('ad_banner_300x250'),
+                    'smartlink' => Setting::getValue('ad_smartlink'),
+                    'popunder' => Setting::getValue('ad_popunder'),
+                ];
+            },
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
                 'message' => $request->session()->get('message'),
             ],
+            'seo' => function() use ($request) {
+                // Default SEO
+                $seo = [
+                    'title' => Setting::getValue('site_name', 'VideyView'),
+                    'description' => Setting::getValue('site_description', 'Elite Media Empire'),
+                    'image' => url('/pwa-icon.png'),
+                ];
+
+                // If viewing a video, override with video metadata
+                $video = $request->route('video');
+                // The route parameter 'video' might be a slug or a model depending on binding
+                if ($video) {
+                    // Check if it's already a model or we need to find it
+                    if (!($video instanceof \App\Models\Video)) {
+                        $video = \App\Models\Video::where('slug', $video)->first();
+                    }
+
+                    if ($video) {
+                        $seo['title'] = $video->title . ' - ' . $seo['title'];
+                        $seo['description'] = $video->description ?: 'Watch premium content on VideyView.';
+                        $seo['image'] = $video->thumbnail_url ?: $seo['image'];
+                    }
+                }
+
+                return $seo;
+            },
         ];
 
         return $shared;

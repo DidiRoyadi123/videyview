@@ -1,68 +1,298 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 
-defineProps({
+const props = defineProps({
     stats: Object,
 });
+
+const getStatusColor = (status) => {
+    if (!status) return 'text-slate-500';
+    const s = JSON.stringify(status);
+    if (s.includes('success')) return 'text-emerald-400';
+    if (s.includes('uploading') || s.includes('pending')) return 'text-amber-400';
+    return 'text-red-400';
+};
+
+const getMirrorCount = (status) => {
+    if (!status) return 0;
+    return Object.values(status).filter(val => val === 'success').length;
+};
 </script>
 
 <template>
-    <Head title="Admin Dashboard" />
+    <Head title="Dasbor Admin Premium" />
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-3xl font-black text-white italic uppercase tracking-tighter">Admin Dashboard</h2>
-                <div class="bg-indigo-500/10 px-4 py-1 rounded-full border border-indigo-500/20">
-                    <span class="text-[10px] font-black uppercase text-indigo-400 tracking-widest">System Overview</span>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-3xl font-black text-white italic uppercase tracking-tighter decoration-indigo-500 decoration-4">
+                        Dasbor <span class="text-indigo-500">Admin</span>
+                    </h2>
+                    <p class="text-slate-500 text-xs font-medium uppercase tracking-[0.2em] mt-1">Kontrol Logistik VideyView</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="bg-indigo-500/10 px-4 py-2 rounded-2xl border border-indigo-500/20 flex items-center gap-2">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                        </span>
+                        <span class="text-[10px] font-black uppercase text-indigo-400 tracking-widest leading-none">Sistem Aktif</span>
+                    </div>
                 </div>
             </div>
         </template>
 
         <div class="py-12">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <!-- Stats Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-                    <div class="glass-dark p-8 rounded-[2rem] border border-white/5 relative overflow-hidden group">
-                        <div class="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl group-hover:bg-indigo-500/10 transition-colors"></div>
-                        <h3 class="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-4">Total Videos</h3>
-                        <div class="text-4xl font-black text-white italic tracking-tighter">{{ stats.total_videos }}</div>
-                        <div class="mt-4 text-xs font-bold text-indigo-400">Cinematic Library</div>
+                <!-- Top Tier Stats -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
+                    <!-- Total Videos -->
+                    <div class="glass-card group p-6 md:p-8">
+                        <div class="flex justify-between items-start mb-4 md:mb-6">
+                            <div class="w-10 h-10 md:w-12 md:h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500 group-hover:scale-110 transition-transform duration-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <div class="text-[9px] md:text-[10px] font-black text-indigo-400/50 uppercase tracking-widest italic">Perpustakaan Global</div>
+                        </div>
+                        <h3 class="text-slate-500 text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-1">Total Konten</h3>
+                        <div class="text-3xl md:text-4xl font-black text-white italic tracking-tighter">{{ stats.total_videos.toLocaleString() }}</div>
+                        <div class="mt-4 flex items-center gap-2">
+                             <div class="h-1.5 flex-1 bg-white/5 rounded-full overflow-hidden">
+                                <div class="h-full bg-indigo-500 rounded-full" :style="{ width: (stats.total_local / stats.total_videos * 100) + '%' }"></div>
+                             </div>
+                             <span class="text-[8px] md:text-[9px] font-bold text-slate-400">{{ Math.round(stats.total_local / stats.total_videos * 100) }}%</span>
+                        </div>
                     </div>
 
-                    <div class="glass-dark p-8 rounded-[2rem] border border-white/5 relative overflow-hidden group">
-                         <div class="absolute -top-12 -right-12 w-32 h-32 bg-violet-500/5 rounded-full blur-3xl group-hover:bg-violet-500/10 transition-colors"></div>
-                        <h3 class="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-4">Community</h3>
-                        <div class="text-4xl font-black text-white italic tracking-tighter">{{ stats.total_users }}</div>
-                        <div class="mt-4 text-xs font-bold text-violet-400">Registered Members</div>
+                    <!-- Community -->
+                    <div class="glass-card group p-6 md:p-8">
+                        <div class="flex justify-between items-start mb-4 md:mb-6">
+                            <div class="w-10 h-10 md:w-12 md:h-12 bg-violet-500/10 rounded-2xl flex items-center justify-center text-violet-500 group-hover:scale-110 transition-transform duration-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 01-12 0v1z" />
+                                </svg>
+                            </div>
+                            <div class="text-[9px] md:text-[10px] font-black text-violet-400/50 uppercase tracking-widest italic">Basis Pengguna</div>
+                        </div>
+                        <h3 class="text-slate-500 text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-1">Pengguna Terdaftar</h3>
+                        <div class="text-3xl md:text-4xl font-black text-white italic tracking-tighter">{{ stats.total_users.toLocaleString() }}</div>
+                        <div class="mt-4 text-[9px] md:text-[10px] font-bold text-violet-400 flex items-center gap-1">
+                            👤 {{ stats.total_premium_users }} Anggota Premium
+                        </div>
                     </div>
 
-                    <div class="glass-dark p-8 rounded-[2rem] border border-white/5 relative overflow-hidden group">
-                         <div class="absolute -top-12 -right-12 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl group-hover:bg-amber-500/10 transition-colors"></div>
-                        <h3 class="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-4">Premium Subs</h3>
-                        <div class="text-4xl font-black text-white italic tracking-tighter">{{ stats.total_premium_users }}</div>
-                        <div class="mt-4 text-xs font-bold text-amber-400">Gold Tier Accounts</div>
+                    <!-- Mirror Mastery -->
+                    <div class="glass-card group p-6 md:p-8">
+                        <div class="flex justify-between items-start mb-4 md:mb-6">
+                            <div class="w-10 h-10 md:w-12 md:h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform duration-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <div class="text-[9px] md:text-[10px] font-black text-amber-400/50 uppercase tracking-widest italic">Sinkronisasi</div>
+                        </div>
+                        <h3 class="text-slate-500 text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-1">Keberhasilan Sinkronisasi</h3>
+                        <div class="text-3xl md:text-4xl font-black text-white italic tracking-tighter">{{ stats.total_mirror_success.toLocaleString() }}</div>
+                        <div class="mt-4 text-[8px] md:text-[9px] font-bold text-amber-400 uppercase">
+                            {{ stats.host_stats.streamtape }} Tape • {{ stats.host_stats.doodstream }} Dood
+                        </div>
                     </div>
 
-                    <div class="glass-dark p-8 rounded-[2rem] border border-white/5 relative overflow-hidden group">
-                         <div class="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-colors"></div>
-                        <h3 class="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-4">Total Views</h3>
-                        <div class="text-4xl font-black text-white italic tracking-tighter">{{ stats.total_views.toLocaleString() }}</div>
-                        <div class="mt-4 text-xs font-bold text-emerald-400">Total Playback</div>
+                    <!-- Total Views -->
+                    <div class="glass-card group p-6 md:p-8">
+                        <div class="flex justify-between items-start mb-4 md:mb-6">
+                            <div class="w-10 h-10 md:w-12 md:h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform duration-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                            </div>
+                            <div class="text-[9px] md:text-[10px] font-black text-emerald-400/50 uppercase tracking-widest italic">Lalu Lintas Aktif</div>
+                        </div>
+                        <h3 class="text-slate-500 text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-1">Total Pemutaran</h3>
+                        <div class="text-3xl md:text-4xl font-black text-white italic tracking-tighter">{{ stats.total_views.toLocaleString() }}</div>
+                        <div class="mt-4 text-[9px] md:text-[10px] font-bold text-emerald-400 uppercase">Akses Resolusi Tinggi</div>
                     </div>
                 </div>
 
-                <!-- Quick Actions / Info -->
-                <div class="glass-dark p-10 rounded-[2.5rem] border border-white/5 bg-gradient-to-br from-indigo-500/5 to-transparent text-center">
-                    <h3 class="text-2xl font-black text-white mb-4 italic uppercase tracking-tighter">System Status: Operational</h3>
-                    <p class="text-slate-400 max-w-2xl mx-auto mb-8 font-medium">VideyView is currently processing requests and streaming content worldwide. Use the navigation above to manage users and media.</p>
-                    <div class="flex justify-center gap-4">
-                        <Link :href="route('admin.videos.index')" class="btn-premium !px-8">Manage Media</Link>
-                        <Link :href="route('admin.users.index')" class="bg-white/5 hover:bg-white/10 text-white font-black px-8 py-3 rounded-xl border border-white/10 transition uppercase tracking-widest text-[10px]">Manage Users</Link>
+                <!-- Project Control Center v3.0 -->
+                <div class="mt-12">
+                    <div class="flex items-center gap-3 mb-8">
+                        <div class="h-px flex-1 bg-white/5"></div>
+                        <h3 class="text-[10px] md:text-sm font-black uppercase tracking-[0.3em] text-slate-500 italic px-4 text-center">Pusat Kontrol Proyek</h3>
+                        <div class="h-px flex-1 bg-white/5"></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                        <!-- Backup System -->
+                        <div class="glass-card p-8 md:p-10 relative overflow-hidden group border-emerald-500/10 hover:border-emerald-500/40">
+                            <div class="absolute -right-8 -top-8 w-32 h-32 bg-emerald-500 opacity-5 blur-3xl group-hover:opacity-10 transition-opacity"></div>
+                            <div class="relative z-10">
+                                <span class="text-2xl md:text-3xl mb-4 block">🛡️</span>
+                                <h4 class="text-lg md:text-xl font-black text-white italic uppercase tracking-tighter">Penguncian Benteng (Fortress)</h4>
+                                <p class="text-slate-400 text-[10px] md:text-xs mt-2 leading-relaxed max-w-xs">Mengamankan seluruh struktur database VideyView ke .sql secara instan.</p>
+                                
+                                <div class="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                    <div class="text-[9px] md:text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pemicu Manual</div>
+                                    <Link 
+                                        :href="route('admin.project.backup')" 
+                                        method="post" 
+                                        as="button" 
+                                        class="w-full sm:w-auto px-6 md:px-8 py-3 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white border border-emerald-500/20 rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all duration-300 transform active:scale-95"
+                                    >
+                                        Bangun Benteng
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Autonomy Status -->
+                        <div class="glass-card p-10 relative overflow-hidden group border-blue-500/10 hover:border-blue-500/40">
+                            <div class="absolute -right-8 -top-8 w-32 h-32 bg-blue-500 opacity-5 blur-3xl group-hover:opacity-10 transition-opacity"></div>
+                            <div class="relative z-10">
+                                <span class="text-3xl mb-4 block">🤖</span>
+                                <h4 class="text-xl font-black text-white italic uppercase tracking-tighter">Robot Mandor Otonom</h4>
+                                <p class="text-slate-400 text-xs mt-2 leading-relaxed max-w-xs">Sistem cerdas yang mengelola backup harian dan patroli kesehatan video (auto-heal) setiap jam secara otonom.</p>
+                                
+                                <div class="mt-8 pt-8 border-t border-white/5 flex items-center gap-6">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        <span class="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Medic Live</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                                        <span class="text-[9px] font-black text-blue-400 uppercase tracking-widest">Guard Active</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Recent Activity Table -->
+                    <div class="lg:col-span-2 glass-card overflow-hidden">
+                        <div class="p-6 border-b border-white/5 flex items-center justify-between">
+                            <h3 class="text-sm font-black uppercase tracking-widest text-white italic">Aktivitas Logistik Terkini</h3>
+                            <Link :href="route('admin.videos.index')" class="text-indigo-400 text-[10px] font-black uppercase hover:text-white transition-colors">Lihat Semua Gudang</Link>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-indigo-500/5 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                    <tr>
+                                        <th class="px-6 py-4">Judul / ID Video</th>
+                                        <th class="px-6 py-4">Multi-Status Host</th>
+                                        <th class="px-6 py-4">Stempel Waktu</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-white/5">
+                                    <tr v-for="video in stats.recent_videos" :key="video.id" class="hover:bg-white/[0.02] transition-colors">
+                                        <td class="px-6 py-4">
+                                            <div class="text-sm font-bold text-slate-200">{{ video.title }}</div>
+                                            <div class="text-[10px] text-slate-500 font-mono">{{ video.slug }}</div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex gap-2">
+                                                <span v-for="(status, host) in video.hosting_status" :key="host" 
+                                                      class="text-[9px] font-black uppercase px-2 py-0.5 rounded border"
+                                                      :class="status === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'">
+                                                    {{ host }}
+                                                </span>
+                                                <span v-if="!video.hosting_status" class="text-[9px] text-slate-600 italic">Belum Ada Sinkronisasi</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-[10px] text-slate-500">
+                                            {{ new Date(video.created_at).toLocaleString() }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Quick Command Panel -->
+                    <div class="glass-card p-6 bg-gradient-to-br from-indigo-600/10 to-transparent">
+                        <h3 class="text-sm font-black uppercase tracking-widest text-indigo-400 italic mb-6">Navigasi Cepat</h3>
+                        <div class="space-y-4">
+                            <Link :href="route('admin.videos.bulk-sync')" class="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition group">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400 group-hover:rotate-12 transition-transform">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                        </svg>
+                                    </div>
+                                    <div class="text-xs font-bold text-white">Sinkronisasi Massal Manual</div>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </Link>
+
+                            <Link :href="route('admin.videos.extractor')" class="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition group">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-purple-500/20 rounded-xl flex items-center justify-center text-purple-400 group-hover:rotate-12 transition-transform">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                        </svg>
+                                    </div>
+                                    <div class="text-xs font-bold text-white">Ekstraktor Tautan Massal</div>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </Link>
+
+                            <Link :href="route('admin.settings.index')" class="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition group">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-slate-500/20 rounded-xl flex items-center justify-center text-slate-400 group-hover:rotate-12 transition-transform">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                    </div>
+                                    <div class="text-xs font-bold text-white">Pengaturan Platform</div>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </Link>
+                        </div>
+                        
+                        <div class="mt-8 p-4 bg-indigo-500 rounded-2xl shadow-xl shadow-indigo-500/20 relative overflow-hidden group cursor-pointer">
+                            <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                            <div class="relative z-10">
+                                <div class="text-[10px] font-black uppercase text-indigo-100 tracking-widest mb-1 italic">Jangkauan Total Tontonan</div>
+                                <div class="text-2xl font-black text-white tracking-tighter italic">KOMANDO UTAMA</div>
+                                <p class="text-indigo-200 text-[10px] mt-2 leading-tight">Hub Premium VideyView berjalan pada kapasitas penuh.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </AuthenticatedLayout>
 </template>
+
+<style scoped>
+.glass-card {
+    background: rgba(30, 41, 59, 0.4);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 2.5rem;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+    background: rgba(30, 41, 59, 0.6);
+    border-color: rgba(99, 102, 241, 0.2);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    transform: translateY(-4px);
+}
+
+.btn-premium {
+    @apply bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl border border-indigo-400/20 shadow-lg shadow-indigo-500/20 transition-all duration-300 transform active:scale-95 uppercase tracking-widest text-[10px] py-4;
+}
+</style>

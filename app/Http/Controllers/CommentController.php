@@ -33,7 +33,7 @@ class CommentController extends Controller
             'content' => $request->input('content'),
         ]);
 
-        return back()->with('success', 'Comment posted successfully.');
+        return back()->with('success', 'Komentar berhasil dikirim.');
     }
 
     public function destroy(Comment $comment)
@@ -43,6 +43,6 @@ class CommentController extends Controller
         }
 
         $comment->delete();
-        return back()->with('success', 'Comment deleted.');
+        return back()->with('success', 'Komentar berhasil dihapus.');
     }
 }

@@ -24,6 +24,13 @@ class DashboardController extends Controller
                 'total_premium_users' => User::whereHas('activeSubscription')->count(),
                 'total_views' => Video::sum('views'),
                 'total_comments' => Comment::count(),
+                'total_local' => Video::where('download_status', 'completed')->count(),
+                'total_mirror_success' => Video::where('hosting_status', 'like', '%"success"%')->count(),
+                'host_stats' => [
+                    'streamtape' => Video::where('hosting_status', 'like', '%"streamtape":"success"%')->count(),
+                    'doodstream' => Video::where('hosting_status', 'like', '%"doodstream":"success"%')->count(),
+                ],
+                'recent_videos' => Video::latest()->select('id', 'title', 'slug', 'hosting_status', 'created_at')->take(5)->get(),
             ];
         });
 

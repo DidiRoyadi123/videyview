@@ -32,11 +32,11 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Welcome Back" />
+        <Head title="Selamat Datang Kembali" />
 
         <div class="mb-8 overflow-hidden">
-            <h2 class="text-2xl font-black text-white italic uppercase tracking-tighter">Welcome Back</h2>
-            <p class="text-slate-500 text-sm font-medium mt-1">Sign in to continue your premium experience.</p>
+            <h2 class="text-2xl font-black text-white italic uppercase tracking-tighter">Selamat Datang Kembali</h2>
+            <p class="text-slate-500 text-sm font-medium mt-1">Masuk untuk melanjutkan pengalaman premium Anda.</p>
         </div>
 
         <div v-if="status" class="mb-4 text-sm font-bold text-green-500 bg-green-500/10 p-3 rounded-xl border border-green-500/20">
@@ -45,7 +45,7 @@ const submit = () => {
 
         <form @submit.prevent="submit" class="space-y-6">
             <div>
-                <InputLabel for="email" value="Email Address" class="!text-slate-400 !text-[10px] !font-black !uppercase !tracking-widest mb-1" />
+                <InputLabel for="email" value="Alamat Email" class="!text-slate-400 !text-[10px] !font-black !uppercase !tracking-widest mb-1" />
 
                 <TextInput
                     id="email"
@@ -63,13 +63,13 @@ const submit = () => {
 
             <div>
                 <div class="flex justify-between items-center mb-1">
-                    <InputLabel for="password" value="Password" class="!text-slate-400 !text-[10px] !font-black !uppercase !tracking-widest" />
+                    <InputLabel for="password" value="Kata Sandi" class="!text-slate-400 !text-[10px] !font-black !uppercase !tracking-widest" />
                     <a
                         href="https://t.me/Mandorbuah"
                         target="_blank"
                         class="text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300 transition"
                     >
-                        Forgot? Chat Admin
+                        Lupa? Hubungi Admin
                     </a>
                 </div>
 
@@ -88,7 +88,7 @@ const submit = () => {
             <div class="flex items-center justify-between">
                 <label class="flex items-center group cursor-pointer">
                     <Checkbox name="remember" v-model:checked="form.remember" class="!bg-white/5 !border-white/10 !text-indigo-600 rounded" />
-                    <span class="ms-2 text-xs font-bold text-slate-500 group-hover:text-slate-400 transition">Keep me signed in</span>
+                    <span class="ms-2 text-xs font-bold text-slate-500 group-hover:text-slate-400 transition">Tetap masuk</span>
                 </label>
             </div>
 
@@ -98,14 +98,14 @@ const submit = () => {
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
-                    SIGN IN
+                    MASUK
                 </PrimaryButton>
             </div>
 
             <div class="text-center pt-4">
                 <p class="text-xs font-bold text-slate-600">
-                    Don't have an account? 
-                    <Link :href="route('register')" class="text-indigo-400 hover:text-indigo-300 transition uppercase tracking-widest ms-1">Create one</Link>
+                    Belum memiliki akun? 
+                    <Link :href="route('register')" class="text-indigo-400 hover:text-indigo-300 transition uppercase tracking-widest ms-1">Daftar</Link>
                 </p>
             </div>
         </form>

@@ -103,7 +103,7 @@ def generate_thumbnail(ffmpeg_path, video_path, thumb_path, slug):
             return False
     return True
 
-def execute_download(target_url, save_path, filename, simple=False):
+def execute_download(args, slug, target_url, save_path, filename, simple=False):
     """Downloads a file with a progress bar and redirect protection."""
     # simple=True disables the carriage-return progress bar for multi-threading
     
@@ -123,6 +123,7 @@ def execute_download(target_url, save_path, filename, simple=False):
                 r.raise_for_status()
                 total_size = int(r.headers.get('content-length', 0))
                 downloaded = 0
+                last_reported = 0
                 
                 with open(save_path, 'wb') as f:
                     for chunk in r.iter_content(chunk_size=65536):
@@ -137,12 +138,17 @@ def execute_download(target_url, save_path, filename, simple=False):
                                 
                                 sys.stdout.write(f"\r  {Colors.BLUE}[PROGRESS]{Colors.END} |{bar}| {percent}% ({downloaded}/{total_size} bytes)")
                                 sys.stdout.flush()
+
+                                # Report to Laravel every 5%
+                                if percent >= last_reported + 5:
+                                    report_progress(args, slug, percent)
+                                    last_reported = (percent // 5) * 5
                 
                 if not simple:
                     print(f"\n  {Colors.GREEN}[OK]{Colors.END} Saved: {filename}")
                 else:
                     print(f"  {Colors.GREEN}[OK]{Colors.END} Downloaded: {filename}")
-                return # Success!
+                return True # Success!
                 
         except (requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as e:
             if attempt < MAX_RETRIES - 1:
@@ -150,9 +156,16 @@ def execute_download(target_url, save_path, filename, simple=False):
                 time.sleep(RETRY_DELAY)
                 continue
             else:
-                raise e
+                print(f"\n  {Colors.RED}[FAIL]{Colors.END} Max retries reached: {str(e)[:50]}")
         except Exception as e:
-            raise e
+            print(f"\n  {Colors.RED}[ERROR]{Colors.END} Download failed: {str(e)[:80]}")
+            break # Permanent failure for non-connection errors
+
+    # Cleanup if failed
+    if os.path.exists(save_path):
+        try: os.remove(save_path)
+        except: pass
+    return False
 
 def register_remote_sync(args, slug, local_path, status):
     """Notifies the remote Laravel app about the sync completion."""
@@ -180,6 +193,24 @@ def register_remote_sync(args, slug, local_path, status):
             print(f"  {Colors.RED}[REMOTE]{Colors.END} Failed (HTTP {r.status_code}): {r.text[:100]}")
     except Exception as e:
         print(f"  {Colors.RED}[REMOTE]{Colors.END} Connection error: {str(e)[:100]}")
+
+def report_progress(args, slug, progress):
+    """Notifies the remote Laravel app about the download progress."""
+    if not args.remote_url or not args.api_key:
+        return
+
+    api_endpoint = f"{args.remote_url.rstrip('/')}/api/internal/sync-progress"
+    headers = {
+        'X-Internal-Sync-Key': args.api_key,
+        'Content-Type': 'application/json'
+    }
+    payload = { 'slug': slug, 'progress': progress }
+
+    try:
+        # Fast timeout as progress isn't critical
+        requests.post(api_endpoint, json=payload, headers=headers, timeout=5, verify=False)
+    except:
+        pass
 
 def process_video(args, video_data, total_count):
     """Orchestrates download and thumbnail generation for one video."""
@@ -222,8 +253,8 @@ def process_video(args, video_data, total_count):
             try:
                 proxy_url = f"{args.url}/video-proxy?url={quote(url, safe='')}"
                 print(f"  {Colors.YELLOW}[TRY]{Colors.END} Proxy: {proxy_url[:60]}...")
-                execute_download(proxy_url, video_path, video_filename, simple=(args.threads > 1))
-                download_success = True
+                if execute_download(args, slug, proxy_url, video_path, video_filename, simple=(args.threads > 1)):
+                    download_success = True
             except Exception as e:
                 print(f"  {Colors.RED}[FAIL]{Colors.END} Proxy unresponsive or failed: {str(e)[:80]}")
 
@@ -231,10 +262,15 @@ def process_video(args, video_data, total_count):
         if not download_success:
             try:
                 print(f"  {Colors.YELLOW}[TRY]{Colors.END} Direct download...")
-                execute_download(url, video_path, video_filename, simple=(args.threads > 1))
-                download_success = True
+                if execute_download(args, slug, url, video_path, video_filename, simple=(args.threads > 1)):
+                    download_success = True
             except Exception as e:
                 print(f"  {Colors.RED}[ERROR]{Colors.END} Total failure: {str(e)[:80]}")
+        
+        if not download_success:
+            if args.remote_url:
+                register_remote_sync(args, slug, relative_video_path, 'failed')
+            return # Stop here for this video
     else:
         print(f"  {Colors.BLUE}[SKIP]{Colors.END} Video exists: {video_filename}")
 
@@ -245,6 +281,10 @@ def process_video(args, video_data, total_count):
             # ONLY register if we actually have the file and thumbnail
             if args.remote_url:
                 register_remote_sync(args, slug, relative_video_path, 'completed')
+        else:
+            # Corruption detected or FFmpeg failed
+            if args.remote_url:
+                register_remote_sync(args, slug, relative_video_path, 'failed')
 
 def worker(args, queue, total_count):
     while True:

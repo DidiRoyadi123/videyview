@@ -12,12 +12,17 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
+            \App\Http\Middleware\ContentGuard::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+            \App\Http\Middleware\LogAdminActivity::class,
         ]);
 
         $middleware->validateCsrfTokens(except: [
             'api/internal/*',
+            'api/internal/sync-video',
+            'api/internal/sync-progress',
+            'api/internal/sync-mirror',
         ]);
 
         $middleware->alias([

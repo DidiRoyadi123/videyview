@@ -111,7 +111,7 @@ const copyCrawlScript = () => {
     let foundLinks = new Set();
 
     function extract(htmlOrDoc) {
-        const regex = /(?:https?:\/\/)?(?:[a-z0-9-]+\.)?videy\.co[^\s"\'\\\\\\[\]()<>]+/g;
+        const regex = /(?:https?:\\/\\/)?(?:[a-z0-9-]+\\.)?videy\\.co[^\\s"\\'\\\\\\\\[\\]()<>]+/g;
         const src = typeof htmlOrDoc === 'string' ? htmlOrDoc : (htmlOrDoc.body.innerText + htmlOrDoc.body.innerHTML);
         const matches = src.match(regex) || [];
         matches.forEach(m => {

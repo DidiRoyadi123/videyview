@@ -10,7 +10,7 @@ class StreamtapeDriver extends BaseDriver
 {
     protected string $login;
     protected string $key;
-    protected string $baseUrl = 'https://api.streamtape.com';
+    protected string $baseUrl = 'https://api.streamtape.to';
 
     public function __construct(string $login, string $key)
     {
@@ -51,7 +51,14 @@ class StreamtapeDriver extends BaseDriver
         }
 
         // 3. POST multipart to the tapecontent.net upload server (ISP bypass applied)
-        $uploadResponse = $this->http($uploadUrl)->attach(
+        $uploadResponse = $this->http($uploadUrl)->withOptions([
+            'progress' => function ($downloadTotal, $downloadedBytes, $uploadTotal, $uploadedBytes) use ($video) {
+                if ($uploadTotal > 0) {
+                    $percent = min(100, round(($uploadedBytes / $uploadTotal) * 100));
+                    \Illuminate\Support\Facades\Cache::put('video_upload_' . $video->id, $percent, 60);
+                }
+            }
+        ])->attach(
             'file1', fopen($videoPath, 'r'), basename($videoPath)
         )->post($uploadUrl);
 
@@ -80,6 +87,49 @@ class StreamtapeDriver extends BaseDriver
             'embed_url'    => "https://streamtape.com/e/{$fileId}",
             'download_url' => null,
         ];
+    }
+
+    public function remoteUpload(Video $video, string $remoteUrl): array
+    {
+        $response = $this->http()->get("{$this->baseUrl}/remotedl/add", [
+            'login' => $this->login,
+            'key'   => $this->key,
+            'url'   => $remoteUrl
+        ]);
+
+        if (!$response->successful() || !isset($response->json()['result']['id'])) {
+            $msg = $response->json()['msg'] ?? $response->body();
+            throw new \Exception("Streamtape remote upload failed: " . $msg);
+        }
+
+        $result = $response->json()['result'];
+        
+        Log::info("Streamtape: Dispatched remote upload", ['remote_id' => $result['id'], 'video' => $video->slug]);
+
+        return [
+            'remote_id' => $result['id'],
+            'folderid'  => $result['folderid'] ?? null
+        ];
+    }
+
+    public function checkRemoteStatus(string $remoteId): array
+    {
+        $response = $this->http()->get("{$this->baseUrl}/remotedl/status", [
+            'login' => $this->login,
+            'key'   => $this->key,
+            'id'    => $remoteId
+        ]);
+
+        if (!$response->successful()) {
+            return ['status' => 'error', 'msg' => 'HTTP ' . $response->status()];
+        }
+
+        $data = $response->json()['result'][$remoteId] ?? null;
+        if (!$data) {
+            return ['status' => 'error', 'msg' => 'Remote ID not found in response'];
+        }
+
+        return $data;
     }
 
     public function getStatus(string $fileId): string

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Video;
 use App\Models\Setting;
+use App\Models\VideoLike;
+use App\Models\Watchlist;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -14,21 +16,42 @@ class VideoController extends Controller
     public function index(Request $request)
     {
         $filter = $request->query('filter', 'all');
+        $search = $request->query('search');
+        $tagSlug = $request->query('tag');
         $page = $request->query('page', 1);
-        $cacheKey = "public_videos_{$filter}_page_{$page}";
 
-        $videos = \Illuminate\Support\Facades\Cache::remember($cacheKey, 60, function () use ($filter) {
-            $query = Video::latest();
+        $cacheKey = "public_videos_{$filter}_s_{$search}_t_{$tagSlug}_page_{$page}";
 
-            if ($filter === 'trending') {
-                $query = Video::orderBy('views', 'desc');
-            } elseif ($filter === 'free') {
-                $query = Video::where('is_free_to_all', true)->orWhere('is_premium', false);
-            } elseif ($filter === 'premium') {
-                $query = Video::where('is_premium', true);
+        $videos = \Illuminate\Support\Facades\Cache::remember($cacheKey, 60, function () use ($filter, $search, $tagSlug) {
+            $query = Video::query();
+
+            // Search by title
+            if ($search) {
+                $query->where('title', 'like', "%{$search}%");
             }
 
-            return $query->paginate(12)->withQueryString();
+            // Filter by Tag
+            if ($tagSlug) {
+                $query->whereHas('tags', function($q) use ($tagSlug) {
+                    $q->where('slug', $tagSlug);
+                });
+            }
+
+            // Combined Filters
+            if ($filter === 'trending') {
+                $query->whereNotNull('thumbnail_url')->orderBy('views', 'desc');
+            } elseif ($filter === 'free') {
+                $query->where(function($q) {
+                    $q->where('is_free_to_all', true)->orWhere('is_premium', false);
+                });
+            } elseif ($filter === 'premium') {
+                $query->where('is_premium', true);
+            } else {
+                // Default: Latest with thumbnail priority
+                $query->orderByRaw('thumbnail_url IS NULL ASC')->latest();
+            }
+
+            return $query->paginate(24)->withQueryString();
         });
 
         // Use local proxy for thumbnails to enable on-demand caching/generation
@@ -101,6 +124,16 @@ class VideoController extends Controller
             return $v;
         });
 
+        // Social States
+        $userLike = null;
+        $is_watchlisted = false;
+        if (Auth::check()) {
+            $userLike = VideoLike::where('video_id', $video->id)->where('user_id', Auth::id())->first();
+            $is_watchlisted = Watchlist::where('video_id', $video->id)->where('user_id', Auth::id())->exists();
+        }
+
+        $watermarkText = Setting::where('key', 'watermark_text')->value('value') ?? 'VIDEYVIEW PROTECT';
+
         // Hide sensitive fields before sending to the frontend
         $secureVideo = $video->makeHidden(['url', 'mirror_links', 'hosting_status', 'local_path', 'remote_id'])->load(['comments.user.activeSubscription']);
 
@@ -108,11 +141,20 @@ class VideoController extends Controller
             'video' => $secureVideo,
             'is_allowed' => $is_allowed,
             'auth_user' => Auth::user(),
+            'user_like_status' => $userLike ? ($userLike->is_like ? 'like' : 'dislike') : null,
+            'is_watchlisted' => $is_watchlisted,
+            'watermark_text' => $watermarkText,
             'recommended' => $recommended,
             'has_local' => ($video->download_status === 'completed' && $video->local_path),
             'has_videy' => str_contains($video->url ?? '', 'videy.co'),
             'available_mirrors' => collect($video->mirror_links)->keys(),
+            'premium_count' => Video::where('is_premium', true)->count(),
         ]);
+    }
+
+    public function maskedRedirect(Video $video)
+    {
+        return redirect()->route('videos.show', $video->slug);
     }
 
     public function thumbnail(Video $video)

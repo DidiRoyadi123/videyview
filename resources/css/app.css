@@ -6,36 +6,83 @@
     :root {
         --brand-primary: 99 102 241; /* Indigo 500 */
         --brand-secondary: 139 92 246; /* Violet 500 */
+        
+        /* Dark Mode Defaults (VideyView Signature) */
+        --bg-main: 2 6 23; /* slate-950 */
+        --bg-surface: 15 23 42; /* slate-900 */
+        --bg-input: 30 41 59 / 0.5; /* slate-800/50 */
+        --text-main: 226 232 240; /* slate-200 */
+        --text-muted: 148 163 184; /* slate-400 */
+        --text-inverse: 15 23 42; /* slate-900 */
+        --card-bg: 15 23 42; /* slate-900 */
+        --border-main: 30 41 59 / 0.4; /* slate-800 */
+        --glass-bg: 15 23 42 / 0.8;
+        --scroll-thumb: 51 65 85; /* slate-700 */
+        --scroll-track: 2 6 23; /* slate-950 */
+    }
+
+    [data-theme="light"] {
+        --bg-main: 249 250 252; /* Sophisticated Linen */
+        --bg-surface: 255 255 255; /* Pure White Surface */
+        --bg-input: 243 244 246; /* Soft Grey Input */
+        --text-main: 15 23 42; /* Deep Slate (Slate-950) */
+        --text-muted: 71 85 105; /* Muted Slate-600 */
+        --text-inverse: 248 250 252;
+        --card-bg: 255 255 255;
+        --border-main: 232 235 242 / 0.8; /* Subtle Indigo-tinted border */
+        --glass-bg: 255 255 255 / 0.7;
+        --scroll-thumb: 212 215 224;
+        --scroll-track: 249 250 252;
+
+        /* Royale Shadow Tokens */
+        --shadow-indigo: 0 25px 50px -12px rgba(99, 102, 241, 0.08);
+        --shadow-strong: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
     }
 
     body {
-        @apply bg-slate-950 text-slate-200 antialiased;
+        background-color: rgb(var(--bg-main));
+        color: rgb(var(--text-main));
+        @apply antialiased transition-colors duration-500;
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
 }
 
 @layer components {
     .glass {
-        @apply bg-white/10 backdrop-blur-md border border-white/10 shadow-xl;
+        background-color: rgb(var(--glass-bg));
+        @apply backdrop-blur-xl border border-[rgb(var(--border-main))] transition-all duration-500;
+        box-shadow: var(--shadow-strong, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
     }
     
     .glass-dark {
-        @apply bg-slate-900/80 backdrop-blur-lg border border-slate-800/50 shadow-2xl;
+        background-color: rgb(var(--glass-bg));
+        @apply backdrop-blur-2xl border border-[rgb(var(--border-main))] transition-all duration-500;
+        box-shadow: var(--shadow-indigo, 0 20px 25px -5px rgba(0, 0, 0, 0.1));
+    }
+
+    .shadow-royale {
+        box-shadow: var(--shadow-indigo);
     }
 
     .btn-premium {
-        @apply relative overflow-hidden px-6 py-2.5 rounded-full font-bold text-white transition-all duration-300
-               bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto]
-               hover:bg-[position:right_center] hover:scale-105 active:scale-95 shadow-lg shadow-indigo-500/20;
+        @apply relative overflow-hidden px-6 py-2.5 rounded-2xl font-black text-white transition-all duration-500
+               bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 bg-[length:200%_auto]
+               hover:bg-[position:right_center] hover:scale-105 active:scale-95 shadow-xl shadow-indigo-500/20 uppercase tracking-widest text-[10px];
     }
 
     .card-modern {
-        @apply bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition-all duration-500 hover:border-indigo-500/50 hover:shadow-2xl hover:shadow-indigo-500/10;
-        will-change: transform, opacity;
+        background-color: rgb(var(--card-bg));
+        border: 1px solid rgb(var(--border-main));
+        @apply rounded-[32px] overflow-hidden transition-all duration-700 hover:scale-[1.02];
+        box-shadow: var(--shadow-indigo);
+    }
+
+    .text-muted {
+        color: rgb(var(--text-muted));
     }
 
     .text-gradient {
-        @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400;
+        @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500;
     }
 }
 
@@ -44,20 +91,25 @@
     width: 8px;
 }
 ::-webkit-scrollbar-track {
-    @apply bg-slate-950;
+    background-color: rgb(var(--scroll-track));
 }
 ::-webkit-scrollbar-thumb {
-    @apply bg-slate-800 rounded-full hover:bg-slate-700 transition-colors;
+    background-color: rgb(var(--scroll-thumb));
+    @apply rounded-full hover:brightness-90 transition-all;
 }
 
-/* Animations */
+/* Theme-Aware Animations */
 @keyframes shimmer {
     0% { background-position: -200% 0; }
     100% { background-position: 200% 0; }
 }
 
 .animate-shimmer {
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(var(--brand-primary) / 0.1), 
+        transparent
+    );
     background-size: 200% 100%;
     animation: shimmer 2s infinite;
 }

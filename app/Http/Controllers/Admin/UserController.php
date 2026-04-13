@@ -48,7 +48,7 @@ class UserController extends Controller
             'expires_at' => now()->addDays($request->duration_days),
         ]);
 
-        return back()->with('success', 'Premium user created.');
+        return back()->with('success', 'Pengguna premium berhasil dibuat.');
     }
 
     public function update(Request $request, User $user)
@@ -76,7 +76,7 @@ class UserController extends Controller
             ]);
         }
 
-        return back()->with('success', 'User updated successfully.');
+        return back()->with('success', 'Data pengguna berhasil diperbarui.');
     }
 
     public function grantPremium(Request $request, User $user)
@@ -93,12 +93,12 @@ class UserController extends Controller
             ['expires_at' => $expiresAt]
         );
 
-        return back()->with('success', "Premium status granted to {$user->name} for {$request->days} days.");
+        return back()->with('success', "Status premium diberikan kepada {$user->name} selama {$request->days} hari.");
     }
 
     public function destroy(User $user)
     {
         $user->delete();
-        return back()->with('success', 'User deleted.');
+        return back()->with('success', 'Pengguna berhasil dihapus.');
     }
 }

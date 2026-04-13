@@ -35,31 +35,149 @@
       "Subscription System: hasActiveSubscription() for premium content.",
       "Admin Ad Guard: Internal AdHandler security to prevent ad leakage in Dashboard."
     ],
-    "anti_adblock": [
-      "Decoy bait scripts (ads-check.js) to trigger detection.",
-      "Server-side script proxy (/assets/js/system-v4.js) for external ad scripts.",
-      "Iframe isolation for repeating banners to prevent layout breakage.",
-      "Base64 encoding and cache-busting for proxied script URLs."
+    "anti_adblock_v5": {
+      "features": [
+        "Aggressive Baiting: Combined <ins> and <div> traps with randomized ID cycling every 1s.",
+        "Mutation Monitoring: MutationObserver targeting 'ins iframe' to detect 1px scaling/hiding hacks.",
+        "Self-Healing: Automatic modal re-render if deleted via DevTools.",
+        "Zero-Cooldown: Removed cycle limits to ensure 24/7 active radar.",
+        "Trust-JS Recovery: Prioritizes successful ads-check.js loading for instant hard-refresh recovery."
+      ]
+    },
+    "video_health_monitoring": {
+      "mechanism": "3-Layer Validation (Local Storage, Videy CDN HEAD, Streamtape API Status).",
+      "storage": "Persistent health_report (JSON) and last_check_at (Timestamp) fields in videos table.",
+      "automation": "Artisan Command (video:check-health) and Manual Trigger in Admin Dashboard.",
+      "ui_indicators": "Color-coded status dots (LOC, VDY, TAP) in Admin Video Management grid."
+    },
+    "admin_visibility_2.0": [
+      "Hosting Badges: Visual overlays (Local, Videy, Tape) on thumbnails for instant oversight.",
+      "Server Identity Masking: Conditional rendering hides host names from guests, showing only to Admins.",
+      "VIP Support UI: Redesigned Member Priority box with pulsing emerald status and premium aesthetics."
     ],
     "automated_distribution_pipeline": {
       "stages": [
-        "Import: JSON/CSV bulk ingestion sets status to 'pending'.",
-        "Download: background DownloadVideoJob using ISP Resolve for high-speed local intake.",
-        "Mirror: automatic DistributeToHostJob (Streamtape) triggered after local completion."
+        "FLOW 1 (Direct Upload): Admin upload file dari pc ke aplikasi -> simpan di local aplikasi -> aplikasi upload ke videy.co (jika bisa) dan streamtape (prioritas). Pembuatan thumbnail via sync.py (backdoor) jika video sudah ada.",
+        "FLOW 2 (Bulk JSON): Admin upload file json link videy.co -> simpan data link -> aplikasi download ke lokal (manual user via sync.py) -> app cek video & thumbnail lokal -> jika ada, upload ke streamtape.",
+        "ISP BYPASS 2.0: Direct backend IP (195.35.23.222) mapping for Streamtape to circumvent DNS/SNI hijacking.",
+        "REAL-TIME SYNC: Worker-to-Master percentage reporting (every 5%) for active transparency.",
+        "ASYNC REMOTE TRACKING: App\\Jobs\\CheckRemoteUploadJob is strictly dispatched to a prioritized 'checkers' queue to constantly poll api.streamtape.to/remotedl/status asynchronously. If extid/url is detected, it instantly flags the video as success without waiting for legacy 'finished' status strings.",
+        "FAIL-SAFE SYNC v2: sync.py handles total download failure and FFmpeg corruption by deleting the file and reporting 'failed' status to Laravel."
       ],
-      "real_time_monitor": "Dynamic dashboard in Index.vue with polling indicators (shimmers/counts)."
+      "real_time_monitor": "Dashboard uses global 3s polling (Admin/VideoController@progress) to update Ready, Pending, and Mirrored stats independently of the current page view."
     },
     "security_masking_proxy_2.0": {
       "features": [
         "On-Demand Fetch: Links provided via timed AJAX only upon playback intent.",
         "Link Masking: No raw cdn.videy.co or streamtape.com URLs in DOM/Network Tab.",
         "Anti-Inspect: Disabled right-click context menu on player area.",
-        "Local Relay: Serve data via dynamic video-proxy route to hide origin domains."
+        "Local Relay: Serve data via dynamic video-proxy route to hide origin domains.",
+        "API Obfuscation: Streamtape API Key in Admin Settings includes an Eye-Icon toggle for masking/unmasking sensitive credentials."
       ]
     },
+    "history_of_improvements": {
+        "v2.5_security_hardening": {
+            "ad_leakage_prevention": {
+                "problem": "Sensitive pages like Login/Admin were loading ad scripts and anti-adblock modals, compromising professional aesthetic and potentially security.",
+                "solution": "Implemented route-aware middleware and strict component-level guards.",
+                "technical_details": [
+                    "Middleware (HandleInertiaRequests.php): Conditional prop sharing ensures 'ads' and 'anti_adblock_enabled' are null/false for restricted routes.",
+                    "AdHandler.vue: Component now monitors window.route() and executes aggressive DOM cleanup on unmount.",
+                    "AntiAdblockGuard.vue: Detection logic and DOM baits are explicitly disabled for admin routes and authenticated admins."
+                ]
+            },
+            "anti_adblock_toggle": {
+                "feature": "Admin controllable toggle for global anti-adblock detection.",
+                "implementation": "Setting 'anti_adblock_enabled' stored in DB, shared via Inertia, and used for conditional rendering in MainLayout.vue."
+            }
+        },
+        "v2.6_distribution_pipeline": {
+            "doodstream_integration": {
+                "goal": "High-performance video mirroring with Indonesian ISP bypass.",
+                "components": [
+                    "Admin Dashboard: Distribution Pipeline visualizes success/pending counts for both Streamtape and Doodstream."
+                ]
+            },
+            "player_server_selector": {
+                "v3.0": "Autonomous Media Empire - Fortress (Backup), Robot (Auto-Healer), Aura (Theme Engine)",
+                "v4.0": "Imperium Expansion - Search 2.0, Social Engine (Waitlist/Likes), Protection (Dynamic Watermark/Content Guard), Mobility (PWA), Visibility (Auto-Sitemap)",
+                "logic": "Dynamic multi-host switching with static user labels.",
+                "naming_convention": {
+                    "Server 1": "Local storage (Origin)",
+                    "Server 2": "Streamtape Mirror",
+                    "Server 3": "Doodstream Mirror",
+                    "Server 4": "Videy Backup (Remote Source)"
+                },
+                "sorting": "Fixed order as requested by Mandor. Buttons only appear if the specific host has a status of 'success' or local storage exists."
+            }
+        },
+        "v2.7_premium_overhaul": {
+            "admin_dashboard": {
+                "ui_design": "Glassmorphism architecture using 'backdrop-blur-20px' and 'bg-slate-800/40'. Features vibrant duo-tone cards with pulsed status indicators.",
+                "data_engine": "Real-time statistics cached for 60s. Uses raw DB collection for mirror efficiency (Streamtape vs Doodstream success ratios) and storage health tracking (total_local vs total_videos).",
+                "activity_log": "Integrated 'Recent Logistics' feed showing the last 5 video distributions with multi-host status badges."
+            },
+            "manual_link_sync": {
+                "route": "/admin/videos/bulk-sync",
+                "controller_logic": "Admin\\VideoController@bulkSyncLinks processes raw text logs. It employs a two-pass parser: first extracting ID-Slug and then associating the subsequent URL.",
+                "regex_pattern": "/<!--\\s*(?:video-)?([a-z0-9-]+)\\s*-->/i (Case-insensitive capture of Videy Slugs/IDs from HTML comments).",
+                "database_match": "Uses Eloquent with 'LOWER(slug) LIKE ?' to ensure cross-platform ID matching regardless of casing in raw logs.",
+                "update_atomic": "Updates 'mirror_links' and 'hosting_status' objects partially without overwriting other host data."
+            },
+            "dynamic_server_switcher": {
+                "public_labels": "Static naming (Server 1, Server 2, Server 3, Server 4) to maintain consistent UX and branding.",
+                "admin_labels": "Dynamic identity masking; Admins see real host names (Streamtape, Doodstream, Local) for debugging.",
+                "server_mapping": {
+                    "Server 1": "Local storage (High Quality Direct)",
+                    "Server 2": "Streamtape (Mirror 1)",
+                    "Server 3": "Doodstream (Mirror 2)",
+                    "Server 4": "Videy Backup (Remote Redundancy)"
+                },
+                "visibility_logic": "Conditional Rendering in Show.vue: Buttons only appear if 'hosting_status->[host] === success' AND mirror_links[host] is not null."
+            }
+        },
+        "v5.0_imperium_overhaul": {
+            "infrastructure_fortress": {
+                "admin_log_viewer": "Full-stack diagnostic dashboard (LogController + Admin/Logs.vue) for real-time error tracking and health oversight.",
+                "memory_optimized_diagnostics": "LogController employs a custom stream reader with fseek, enabling O(1) memory access to the last 100 lines of massive log files, preventing 500 errors.",
+                "pwa_premium": "Full PWA manifest implementation with custom 'Neon Indigo Shield' maskable icons and brand-synchronized theme coloring."
+            },
+            "ghost_automation": {
+                "auto_healing_engine": "CheckVideoHealthJob upgraded to autonomously trigger re-distribution (DistributeToHostJob) for specific dead hosts (Doodstream/Streamtape) without admin intervention.",
+                "seo_pro": "Dynamic OpenGraph pipeline injected through HandleInertiaRequests middleware, delivering high-fidelity social previews for video shared via Telegram/WhatsApp."
+            },
+            "build_stabilization_royale": {
+                "mathematical_tag_audit": "Strict protocol for resolving 'onclosetag' errors in Vite. Utilizes Python-based stack verification to identify mismatched phrasing content (e.g., div inside h3) and redundant closing tags in nested Royale Light layouts.",
+                "surgical_patching": "Use of raw byte/line-specific patching scripts (fix_tags.py) to bypass whitespace-sensitive IDE editing limitations, ensuring binary-stable Vue template balancing."
+            },
+            "elite_ux": {
+                "theme_engine_v5": "Global Dark/Light mode implementation using CSS variable architecture and localStorage persistence.",
+                "linen_indigo_palette": "Premium Royale Light aesthetic using HSL-derived Linen (249 250 252) background and Deep Slate (15 23 42) text for high-fidelity legibility.",
+                "custom_player_skins": "Injected CSS Shadow DOM overrides to theme the HTML5 player with Indigo accents, consistent with VideyView's premium branding."
+            }
+        }
+    },
     "external_hosting": {
-      "primary": "Streamtape (Hard-mirror driver, optimized for Indonesian ISP bypass).",
-      "secondary": "Disabled to maintain mirroring efficiency and API throughput."
+      "security_fixes": {
+        "ad_leakage_mitigation": {
+          "middleware": "Implemented route-aware conditional prop sharing in HandleInertiaRequests.php. Ads are now null for Admin/Auth routes regardless of user state.",
+          "components": "Hardened AdHandler.vue and AntiAdblockGuard.vue with route-based guards and aggressive DOM cleanup in onUnmounted().",
+          "validation": "Ensured no ad scripts or baits are present on Login, Register, or Admin Dashboard pages."
+        }
+      },
+      "monitoring": {
+        "multi_host_dashboard": {
+          "drivers": ["Streamtape", "Doodstream"],
+          "pipeline": "Visual tracking from Videy Source -> Local Cache -> Multi-Host Mirroring.",
+          "stats": "Real-time mirroring success tracking for all registered hosts in Admin Dashboard."
+        }
+      },
+      "user_experience": {
+        "server_selection": "Dynamic player server selector with priority-based sorting (Mirrors for free users, Local for premium/admin)."
+      },
+      "primary": "Streamtape (Host Integration 2.0: Editable via Admin > Settings).",
+      "secondary": "Doodstream (Studied & Ready: Secondary/Backup Host with ISP Bypass).",
+      "automation": "Zero-Click: Mirroring starts automatically after Local Worker (sync.py) reports completion."
     }
   },
   "external_hosting_credentials": {
@@ -68,19 +186,55 @@
       "password": "1Nd4hy4n1",
       "api_login": "ba1402c48869ff3f5d71",
       "api_key": "ZKbxp4w8VjIqxXb",
-      "url": "https://streamtape.com/",
-      "mirror_url": "https://streamtape.to/",
-      "verified_upload_servers": [
-        {
-          "domain": "861520586.tapecontent.net",
-          "ip": "51.89.194.202"
+      "base_url": "https://api.streamtape.com",
+      "api_patterns": {
+        "auth": "Must include 'login={api_login}&key={api_key}' in all GET/POST requests.",
+        "account_info": "GET /account/info",
+        "local_upload": {
+          "step_1": "GET /file/ul?folder={folder_id} -> returns upload_url",
+          "step_2": "POST multipart/form-data to upload_url."
         },
-        {
-          "domain": "861113552.tapecontent.net",
-          "ip": "51.83.140.208"
+        "remote_upload": {
+          "add": "GET /remotedl/add?url={source_url}&folder={folder_id}&name={custom_name}",
+          "status": "GET /remotedl/status?id={remote_id}",
+          "list": "GET /remotedl/list"
+        },
+        "file_management": {
+          "info": "GET /file/info?file={file_id}",
+          "list": "GET /file/listfolder?folder={folder_id}",
+          "delete": "GET /file/delete?file={file_id}"
         }
-      ],
+      },
+      "status": "Dinamis: Managed via Admin Panel Database (~settings table).",
       "active": true
+    },
+    "doodstream": {
+      "api_key": "561492l0isghhqftfzqpnv",
+      "base_url": "https://doodapi.co/api/",
+      "isp_bypass": {
+        "verified_ip": "172.67.70.170",
+        "technique": "CURLOPT_RESOLVE mapping in BaseDriver.php",
+        "reason": "Avoids 'Internet Positif' DNS hijacking and SNI filtering on primary domains."
+      },
+      "api_patterns": {
+        "auth": "Always use 'key={api_key}' as a query parameter (GET/POST).",
+        "local_upload": {
+          "step_1": "GET /upload/server?key={key} -> returns upload_url",
+          "step_2": "POST [upload_url] with multipart/form-data: 'api_key' and 'file'."
+        },
+        "remote_upload": {
+          "endpoint": "GET /upload/url?key={key}&url={source_url}",
+          "params": ["fld_id (optional)", "new_title (optional)"],
+          "behavior": "Returns instant filecode; download happens in background."
+        },
+        "monitoring": {
+          "bulk_status": "GET /urlupload/list?key={key}",
+          "single_status": "GET /urlupload/status?key={key}&id={remote_id}",
+          "file_health": "GET /file/info?key={key}&file_code={code}"
+        }
+      },
+      "constraints": "10 requests per second rate limit.",
+      "status": "Ready for Driver Implementation (v3.0 priority)."
     }
   },
   "important_paths": {
@@ -111,15 +265,24 @@
       "Telegram Bypass: Redirected all forgot-password/reset-password routes to @Mandorbuah.",
       "Desktop Logout: Added dedicated Sign Out button to header for one-click access.",
       "Guest Lock: Implemented 'Discussion Locked' UI in Show.vue for guest users."
+    ],
+    "admin_fortress_hardening": [
+      "Secret Path Obfuscation: Admin panel moved from /admin to a configurable .env variable (ADMIN_PATH).",
+      "Audit Black Box: Full activity logging in admin_activities table (User ID, Action, IP, User Agent).",
+      "Login Throttling: Strict rate limiting on login and admin routes to prevent brute force attacks.",
+      "Session Lockdown: Shorter session lifetime and restricted access for administrative routes.",
+      "Dynamic Host Logic: MultiHostServiceProvider injected via database settings to remove hardcoded API keys."
     ]
   },
   "maintenance_logs_current": [
-    "Finalized Member-to-Database Pipeline (Contact Info + Auth Security).",
-    "Implemented Tiered Access Restrictions: Premium lock and Guest comment block.",
-    "Integrated Zero-Click Automation for Extractor-to-Queue Intake.",
-    "Deployed Standalone Sync Manifest Bridge for Offline Download Support.",
-    "Refined Ad Aesthetics: Transitioned repeating banners into a seamless 'Native Grid' layout.",
-    "Comprehensive Audit: Verified all 4 user tiers (Admin, Premium, Free, Guest).",
-    "Mobile Polish: Optimized grid spacing and player layout for smartphone devices."
+    "v5.0 DEPLOYMENT: Full scale Imperium Overhaul active.",
+    "v5.0: Deployed Centralized Log Viewer for real-time diagnostic transparency.",
+    "v5.0: Upgraded Ghost Auto-Healer with active host re-distribution logic.",
+    "v5.0: Activated SEO Pro with dynamic OpenGraph meta injection (Social Previews).",
+    "v5.0: Launched Aura Theme Engine (Dark/Light mode) with Indigo premium skinning.",
+    "v5.0: Finalized Rebranding: Purged 'Ads' terminology across system configuration.",
+    "v3.0_Upgrade (Tiga Pilar): Implemented 'Fortress Lockdown' (One-click DB Backup).",
+    "v3.0_Upgrade (Tiga Pilar): Deployed 'Robot Mandor Otonom' (Artisan Scheduler).",
+    "v3.0_Upgrade (Tiga Pilar): Installed 'Aura Mandor' (Theme Engine v1.0)."
   ]
 }
