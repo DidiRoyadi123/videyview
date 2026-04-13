@@ -290,19 +290,10 @@ const formatDate = (dateStr) => {
                                         </div>
 
                                         <div v-if="video.is_premium" class="flex gap-2">
-                                             <span class="bg-amber-500/10 text-amber-600 text-[9px] px-4 py-2 rounded-full border border-amber-500/20 font-black uppercase tracking-[0.2em] shadow-lg shadow-amber-500/5">
-                                                ELITE ACCESS
+                                             <span class="bg-indigo-500/10 text-indigo-400 text-[10px] px-4 py-2 rounded-full border border-indigo-500/20 font-black uppercase tracking-widest shadow-lg backdrop-blur">
+                                                EKSKLUSIF PREMIUM
                                             </span>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
->
-
-                                    <div v-if="video.is_premium" class="flex gap-2">
-                                         <span class="bg-indigo-500/10 text-indigo-400 text-[10px] px-4 py-2 rounded-full border border-indigo-500/20 font-black uppercase tracking-widest shadow-lg backdrop-blur">
-                                            EKSKLUSIF PREMIUM
-                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -555,6 +546,8 @@ const formatDate = (dateStr) => {
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
     </MainLayout>
 </template>
 

@@ -64,7 +64,6 @@ onUnmounted(() => {
                     <div class="flex items-center gap-4 shrink-0">
                         <Link :href="route('home')" class="group flex items-center gap-2">
                             <ApplicationLogo class="h-9 w-auto fill-current text-indigo-500 transition-transform group-hover:scale-110" />
-                            <span class="text-xl font-black italic tracking-tighter uppercase hidden sm:block" :style="{ color: 'rgb(var(--text-main))' }">VIDEYVIEW</span>
                         </Link>
                     </div>
 
