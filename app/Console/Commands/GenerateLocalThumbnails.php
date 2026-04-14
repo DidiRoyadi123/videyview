@@ -3,6 +3,8 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use App\Models\Video;
+use App\Helpers\VideoHelper;
 
 class GenerateLocalThumbnails extends Command
 {
@@ -17,11 +19,12 @@ class GenerateLocalThumbnails extends Command
     public function handle()
     {
         // Find local videos that don't have a local thumbnail URL
-        $videos = \App\Models\Video::where('download_status', 'completed')
+        $videos = Video::where('download_status', 'completed')
             ->get();
 
         $this->info("Found {$videos->count()} local videos needing or using non-local thumbnails.");
 
+        /** @var Video $video */
         foreach ($videos as $video) {
             $this->info("Processing ID {$video->id}: {$video->title}");
             
@@ -32,7 +35,7 @@ class GenerateLocalThumbnails extends Command
             $this->info("  - Checking path: $fullPath");
 
             if (file_exists($fullPath)) {
-                $success = \App\Helpers\VideoHelper::generateThumbnail($video, $fullPath);
+                $success = VideoHelper::generateThumbnail($video, $fullPath);
                 if ($success) {
                     $this->info("  - Generated and updated DB: " . $video->thumbnail_url);
                 } else {

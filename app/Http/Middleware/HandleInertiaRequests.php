@@ -4,7 +4,9 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use App\Models\Setting;
+use App\Models\Tag;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -43,6 +45,7 @@ class HandleInertiaRequests extends Middleware
                 ] : null,
             ],
             'anti_adblock_enabled' => Setting::getValue('anti_adblock_enabled', '1') === '1',
+            'ui_template' => Setting::getValue('ui_template', 'classic'),
             'ads' => function() {
                 // Determine if we should show ads on the current request
                 $user = Auth::user();
@@ -98,6 +101,23 @@ class HandleInertiaRequests extends Middleware
                 }
 
                 return $seo;
+            },
+            'popular_tags' => function() {
+                $routeName = \Route::currentRouteName();
+                $isProtected = $routeName && (
+                    str_starts_with($routeName, 'admin.') || 
+                    $routeName === 'dashboard' ||
+                    str_starts_with($routeName, 'login') || 
+                    str_starts_with($routeName, 'register')
+                );
+                if ($isProtected) return null;
+
+                return Cache::remember('popular_tags_global', 300, function () {
+                    return Tag::withCount('videos')
+                        ->orderByDesc('videos_count')
+                        ->take(12)
+                        ->get(['name', 'slug']);
+                });
             },
         ];
 

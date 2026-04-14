@@ -24,6 +24,8 @@ class SettingController extends Controller
             'doodstream_login' => Setting::getValue('doodstream_login', ''),
             'doodstream_key' => Setting::getValue('doodstream_key', ''),
             'anti_adblock_enabled' => Setting::getValue('anti_adblock_enabled', '1'),
+            'watermark_text' => Setting::getValue('watermark_text', 'VIDEYVIEW PROTECT'),
+            'ui_template' => Setting::getValue('ui_template', 'classic'),
         ];
 
         return Inertia::render('Admin/Settings', [

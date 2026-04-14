@@ -3,12 +3,14 @@ import { Link, usePage, router } from '@inertiajs/vue3';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
-import { ref, onMounted, onUnmounted, provide, watch } from 'vue';
+import BottomNavBar from '@/Components/BottomNavBar.vue';
+import { ref, computed, onMounted, onUnmounted, provide, watch } from 'vue';
 import { useAutoLogout } from '@/Composables/useAutoLogout';
 import { useToast } from '@/Composables/useToast';
 import ToastList from '@/Components/Toasts/ToastList.vue';
 import AdHandler from '@/Components/Ads/AdHandler.vue';
 import AntiAdblockGuard from '@/Components/Ads/AntiAdblockGuard.vue';
+import AntiInspectGuard from '@/Components/Security/AntiInspectGuard.vue';
 
 const { success: toastSuccess, error: toastError, info: toastInfo } = useToast();
 const page = usePage();
@@ -25,6 +27,10 @@ const isNavigating = ref(false);
 const theme = ref(localStorage.getItem('theme') || 'dark');
 
 provide('isNavigating', isNavigating);
+
+// Template Engine: detect active UI template from admin settings
+const isSpark = computed(() => page.props.ui_template === 'spartankobs');
+provide('isSpark', isSpark);
 
 router.on('start', () => isNavigating.value = true);
 router.on('finish', () => isNavigating.value = false);
@@ -255,14 +261,14 @@ onUnmounted(() => {
             </div>
         </Transition>
 
-        <main class="pt-24 pb-12 transition-all duration-500">
-            <div v-if="$slots.header" class="max-w-7xl mx-auto px-6 mb-12">
+        <main class="pt-24 pb-12 safe-bottom transition-all duration-500">
+            <div v-if="$slots.header" class="max-w-7xl mx-auto px-3 sm:px-6 mb-6 lg:mb-12">
                 <slot name="header" />
             </div>
             <slot />
         </main>
         
-        <footer class="mt-auto py-12 border-t border-[rgb(var(--border-main))] bg-[rgb(var(--bg-main))] transition-colors duration-500">
+        <footer class="mt-auto py-8 lg:py-12 border-t border-[rgb(var(--border-main))] bg-[rgb(var(--bg-main))] transition-colors duration-500 hidden lg:block">
             <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
                 <div class="flex items-center gap-2 opacity-50">
                     <ApplicationLogo class="h-6 w-auto fill-current text-[rgb(var(--text-main))]" />
@@ -296,6 +302,12 @@ onUnmounted(() => {
 
         <!-- Anti-Adblock Guard (Public Pages Only) -->
         <AntiAdblockGuard v-if="$page.props.anti_adblock_enabled && !$page.props.auth.user?.is_admin" />
+        
+        <!-- Anti-Inspect Pro Security (Guest/Non-Admin Only) -->
+        <AntiInspectGuard v-if="!$page.props.auth.user?.is_admin" />
+
+        <!-- Mobile Bottom Navigation (Both Templates) -->
+        <BottomNavBar />
     </div>
 </template>
 

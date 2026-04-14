@@ -6,6 +6,8 @@ import { ref, computed, inject, onUnmounted, watch } from 'vue';
 import AdHandler from '@/Components/Ads/AdHandler.vue';
 import axios from 'axios';
 
+const isSpark = inject('isSpark', computed(() => false));
+
 const props = defineProps({
     video: Object,
     is_allowed: Boolean,
@@ -58,6 +60,23 @@ const toggleWatchlist = () => {
 const streamingUrl = ref(null);
 const isLoadingStream = ref(false);
 const hasSwitched = ref(false);
+const videoPlayer = ref(null);
+
+const isPiPSupported = computed(() => {
+    return typeof document !== 'undefined' && !!document.pictureInPictureEnabled;
+});
+
+const togglePiP = async () => {
+    try {
+        if (document.pictureInPictureElement) {
+            await document.exitPictureInPicture();
+        } else if (videoPlayer.value) {
+            await videoPlayer.value.requestPictureInPicture();
+        }
+    } catch (error) {
+        console.error("PiP failed:", error);
+    }
+};
 
 const page = usePage();
 
@@ -210,13 +229,13 @@ const formatDate = (dateStr) => {
     <Head :title="video.title" />
 
     <MainLayout>
-        <div class="relative min-h-screen flex flex-col pt-8 md:pt-16 pb-24">
+        <div class="relative min-h-screen flex flex-col pt-2 sm:pt-8 md:pt-16 pb-8 sm:pb-24">
             <!-- Background Glow -->
             <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[120%] h-[120%] bg-indigo-600/5 rounded-full blur-[150px]"></div>
             </div>
 
-            <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+            <div class="relative z-10 max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 w-full">
                 <!-- Royale Skeleton Context -->
                 <div v-if="isNavigating" class="flex flex-col lg:flex-row gap-12 animate-pulse">
                     <!-- Left Column Skeleton -->
@@ -247,7 +266,7 @@ const formatDate = (dateStr) => {
                             <div class="mb-8 flex flex-col gap-6">
                                 <div class="flex items-center justify-between flex-wrap gap-4">
                                     <div class="flex items-center gap-4">
-                                        <Link :href="route('home')" class="group flex items-center gap-3 text-[rgb(var(--text-muted))] hover:text-indigo-500 transition font-black text-[10px] uppercase tracking-[0.2em] bg-[rgb(var(--bg-input))] px-5 py-2.5 rounded-2xl border border-[rgb(var(--border-main))] shadow-inner">
+                                        <Link :href="route('home')" class="group flex items-center gap-2 text-[rgb(var(--text-muted))] hover:text-indigo-500 transition font-black text-[9px] sm:text-[10px] uppercase tracking-widest bg-[rgb(var(--bg-input))] px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl border border-[rgb(var(--border-main))] shadow-inner">
                                             <span class="group-hover:-translate-x-1 transition-transform">←</span> Back
                                         </Link>
                                         
@@ -266,6 +285,13 @@ const formatDate = (dateStr) => {
                                                 class="flex items-center gap-2 px-4 py-2 rounded-[18px] transition-all active:scale-90"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" :class="is_watchlisted ? 'fill-current' : 'fill-none'" class="h-4 w-4" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
+                                            </button>
+
+                                            <button v-if="isPiPSupported && isVideoSource" @click="togglePiP" 
+                                                class="flex items-center gap-2 px-4 py-2 rounded-[18px] text-[rgb(var(--text-muted))] hover:text-indigo-500 hover:bg-white/10 transition-all active:scale-90"
+                                                title="Mini Player"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                                             </button>
                                         </div>
 
@@ -306,13 +332,12 @@ const formatDate = (dateStr) => {
 
                             <!-- Royale Video Player Wrapper -->
                             <div :class="[
-                                is_allowed ? 'aspect-video' : 'aspect-auto min-h-[480px] sm:aspect-video',
-                                'rounded-[40px] overflow-hidden shadow-royale relative group bg-black border border-[rgb(var(--border-main))] transition-all duration-700',
+                                is_allowed ? 'aspect-video' : 'aspect-auto min-h-[250px] sm:min-h-[480px] sm:aspect-video',
+                                'rounded-2xl sm:rounded-[40px] overflow-hidden shadow-royale relative group bg-black border border-[rgb(var(--border-main))] transition-all duration-700',
                                 video.is_premium && is_allowed ? 'ring-2 ring-indigo-500/20' : ''
                             ]"
                             oncontextmenu="return false;">
                                 <template v-if="is_allowed">
-                                    <DynamicWatermark v-if="!isPremiumUser" :text="watermark_text" />
                                     <!-- Royale Loading State -->
                                     <div v-if="isLoadingStream && !streamingUrl" class="absolute inset-0 flex flex-col items-center justify-center bg-[rgb(var(--bg-main))] z-20">
                                         <div class="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-6"></div>
@@ -321,6 +346,7 @@ const formatDate = (dateStr) => {
 
                                     <video 
                                         v-if="isVideoSource"
+                                        ref="videoPlayer"
                                         :src="streamingUrl" 
                                         class="w-full h-full object-contain" 
                                         controls
@@ -343,6 +369,7 @@ const formatDate = (dateStr) => {
                                         <div class="w-16 h-16 rounded-full glass flex items-center justify-center text-2xl mb-4">🎬</div>
                                         <p class="text-[10px] font-black uppercase tracking-widest">Wait for Stream...</p>
                                     </div>
+                                    <DynamicWatermark :text="watermark_text" />
                                 </template>
                                 <template v-else>
                                     <!-- Royale Lock Screen -->
@@ -384,7 +411,7 @@ const formatDate = (dateStr) => {
 
                         <!-- Mobile-only Video Info -->
                         <div class="lg:hidden">
-                            <div class="glass-dark p-8 rounded-[40px] border border-slate-800/50 mb-12">
+                            <div class="glass-dark p-4 sm:p-8 rounded-2xl sm:rounded-[40px] border border-slate-800/50 mb-6 sm:mb-12">
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="px-5 py-4 bg-white/5 rounded-3xl border border-white/5 flex flex-col gap-1 shadow-inner">
                                         <span class="text-[9px] uppercase tracking-widest text-slate-500 font-black">Audience</span>
@@ -428,7 +455,7 @@ const formatDate = (dateStr) => {
 
 
                         <!-- Royale Community Section -->
-                        <div class="glass shadow-royale p-8 rounded-[40px] border border-[rgb(var(--border-main))] relative overflow-hidden">
+                        <div class="glass shadow-royale p-4 sm:p-8 rounded-2xl sm:rounded-[40px] border border-[rgb(var(--border-main))] relative overflow-hidden">
                             <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none"></div>
                             
                             <div class="flex items-center justify-between mb-12">

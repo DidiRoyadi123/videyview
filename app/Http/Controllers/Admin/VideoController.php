@@ -122,8 +122,8 @@ class VideoController extends Controller
             ]);
 
             // Auto-chain: mirroring to Streamtape after manual PC upload
-            \App\Jobs\DistributeToHostJob::dispatch($video, 'streamtape');
-            \App\Jobs\DistributeToHostJob::dispatch($video, 'videy');
+            DistributeToHostJob::dispatch($video, 'streamtape');
+            DistributeToHostJob::dispatch($video, 'videy');
         } else {
             // URL Upload (Same as before)
             $url = $request->url;
@@ -295,8 +295,8 @@ class VideoController extends Controller
             }
         }
         $video->delete();
-        \Illuminate\Support\Facades\Cache::forget("video_show_{$video->slug}");
-        \Illuminate\Support\Facades\Cache::forget('admin_stats');
+        Cache::forget("video_show_{$video->slug}");
+        Cache::forget('admin_stats');
         
         return back()->with('success', 'Video dan file terkait berhasil dihapus.');
     }
@@ -360,8 +360,8 @@ class VideoController extends Controller
         $videos = Video::whereIn('id', $ids)->get(['id', 'hosting_status']);
 
         foreach ($ids as $id) {
-            $progress[$id] = \Illuminate\Support\Facades\Cache::get('video_download_' . $id, 0);
-            $uploadProgress[$id] = \Illuminate\Support\Facades\Cache::get('video_upload_' . $id, 0);
+            $progress[$id] = Cache::get('video_download_' . $id, 0);
+            $uploadProgress[$id] = Cache::get('video_upload_' . $id, 0);
             
             $video = $videos->where('id', $id)->first();
             if ($video) {
@@ -380,7 +380,7 @@ class VideoController extends Controller
             $sum = 0;
             $countValid = 0;
             foreach ($activeDownloadIds as $adId) {
-                $val = \Illuminate\Support\Facades\Cache::get('video_download_' . $adId, 0);
+                $val = Cache::get('video_download_' . $adId, 0);
                 if ($val > 0) { $sum += $val; $countValid++; }
             }
             $globalDownloadAvg = $countValid ? round($sum / $countValid) : 0;
@@ -391,7 +391,7 @@ class VideoController extends Controller
             $sum = 0;
             $countValid = 0;
             foreach ($activeMirrorIds as $amId) {
-                $val = \Illuminate\Support\Facades\Cache::get('video_upload_' . $amId, 0);
+                $val = Cache::get('video_upload_' . $amId, 0);
                 if ($val > 0) { $sum += $val; $countValid++; }
             }
             $globalUploadAvg = $countValid ? round($sum / $countValid) : 0;
@@ -534,11 +534,11 @@ class VideoController extends Controller
 
             if ($video->isDirty()) {
                 $video->save();
-                \Illuminate\Support\Facades\Cache::forget("video_show_{$video->slug}");
+                Cache::forget("video_show_{$video->slug}");
             }
         }
 
-        \Illuminate\Support\Facades\Cache::forget('admin_stats');
+        Cache::forget('admin_stats');
 
         return to_route('admin.videos.index')->with('success', "Audit Flash Selesai. Ditemukan $synced video lokal. ($missing video hilang dari penyimpanan).");
     }
@@ -581,7 +581,7 @@ class VideoController extends Controller
         $hosts = $host ? [$host] : array_keys($service->allDrivers());
 
         foreach ($hosts as $h) {
-            \App\Jobs\DistributeToHostJob::dispatch($video, $h);
+            DistributeToHostJob::dispatch($video, $h);
         }
 
         return to_route('admin.videos.index')->with('success', 'Tugas sinkronisasi dikirim.');

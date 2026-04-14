@@ -18,11 +18,12 @@ class VideoController extends Controller
         $filter = $request->query('filter', 'all');
         $search = $request->query('search');
         $tagSlug = $request->query('tag');
+        $sort = $request->query('sort', 'latest');
         $page = $request->query('page', 1);
 
-        $cacheKey = "public_videos_{$filter}_s_{$search}_t_{$tagSlug}_page_{$page}";
+        $cacheKey = "public_videos_{$filter}_s_{$search}_t_{$tagSlug}_sort_{$sort}_page_{$page}";
 
-        $videos = \Illuminate\Support\Facades\Cache::remember($cacheKey, 60, function () use ($filter, $search, $tagSlug) {
+        $videos = \Illuminate\Support\Facades\Cache::remember($cacheKey, 60, function () use ($filter, $search, $tagSlug, $sort) {
             $query = Video::query();
 
             // Search by title
@@ -37,15 +38,20 @@ class VideoController extends Controller
                 });
             }
 
-            // Combined Filters
-            if ($filter === 'trending') {
-                $query->whereNotNull('thumbnail_url')->orderBy('views', 'desc');
-            } elseif ($filter === 'free') {
+            // Category Filters
+            if ($filter === 'free') {
                 $query->where(function($q) {
                     $q->where('is_free_to_all', true)->orWhere('is_premium', false);
                 });
             } elseif ($filter === 'premium') {
                 $query->where('is_premium', true);
+            }
+
+            // Sorting Logic 2.0
+            if ($filter === 'trending' || $sort === 'popular') {
+                $query->whereNotNull('thumbnail_url')->orderBy('views', 'desc');
+            } elseif ($sort === 'oldest') {
+                $query->oldest();
             } else {
                 // Default: Latest with thumbnail priority
                 $query->orderByRaw('thumbnail_url IS NULL ASC')->latest();
@@ -82,6 +88,7 @@ class VideoController extends Controller
             'videos' => $videos,
             'trendingVideos' => $trendingVideos,
             'currentFilter' => $filter,
+            'currentSort' => $sort,
         ]);
     }
 
@@ -203,7 +210,7 @@ class VideoController extends Controller
         ignore_user_abort(true);
 
         $videoId = $request->query('video_id');
-        $video = \App\Models\Video::find($videoId);
+        $video = Video::find($videoId);
         
         if (!$video) {
             abort(404, 'Video not found.');
@@ -212,7 +219,7 @@ class VideoController extends Controller
         $url = $video->url;
         
         if ($video->is_premium) {
-            $user = \Illuminate\Support\Facades\Auth::user();
+            $user = Auth::user();
             if (!$user || (!$user->is_admin && !$user->hasActiveSubscription())) {
                 abort(403, 'Premium subscription required for this proxy stream.');
             }

@@ -25,6 +25,8 @@ const form = useForm({
     streamtape_key: props.settings.streamtape_key || '',
     doodstream_login: props.settings.doodstream_login || '',
     doodstream_key: props.settings.doodstream_key || '',
+    watermark_text: props.settings.watermark_text || '',
+    ui_template: props.settings.ui_template || 'classic',
 });
 
 const showStreamtapeKey = ref(false);
@@ -79,6 +81,60 @@ const submit = () => {
         <div class="py-12">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <form @submit.prevent="submit" class="space-y-10">
+
+                    <!-- UI Template Engine -->
+                    <div class="glass-dark p-10 rounded-[2.5rem] border border-white/5 relative overflow-hidden group">
+                        <div class="absolute -top-24 -right-24 w-64 h-64 bg-cyan-500/10 rounded-full blur-[100px] group-hover:bg-cyan-500/20 transition-all duration-1000"></div>
+                        <h3 class="text-xl font-black text-white mb-2 flex items-center gap-4">
+                            <span class="w-2 h-8 bg-cyan-500 rounded-full"></span>
+                            Mesin Templat Antarmuka
+                        </h3>
+                        <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-8">Pilih gaya tampilan publik untuk pengunjung</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Classic Template -->
+                            <button 
+                                type="button" 
+                                @click="form.ui_template = 'classic'"
+                                :class="form.ui_template === 'classic' ? 'border-indigo-500 bg-indigo-500/10 ring-2 ring-indigo-500/30' : 'border-white/5 hover:border-white/20'"
+                                class="p-6 rounded-2xl border text-left transition-all duration-300 relative overflow-hidden group/card"
+                            >
+                                <div class="absolute -top-12 -right-12 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl group-hover/card:bg-indigo-500/20 transition-all"></div>
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl" :class="form.ui_template === 'classic' ? 'bg-indigo-500 shadow-lg shadow-indigo-500/30' : 'bg-white/5'">🎨</div>
+                                    <div>
+                                        <div class="text-sm font-black text-white uppercase tracking-wider">Classic Royale</div>
+                                        <div class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Default • Desktop-First</div>
+                                    </div>
+                                    <div v-if="form.ui_template === 'classic'" class="ml-auto">
+                                        <span class="text-[8px] font-black bg-indigo-500 text-white px-2 py-1 rounded-full uppercase">Aktif</span>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-slate-400 leading-relaxed">Tampilan premium khas VideyView — floating navbar, hero carousel besar, overlay title di thumbnail, rounded-[40px] cards, footer desktop.</p>
+                            </button>
+
+                            <!-- SpartanKobs Template -->
+                            <button 
+                                type="button" 
+                                @click="form.ui_template = 'spartankobs'"
+                                :class="form.ui_template === 'spartankobs' ? 'border-cyan-500 bg-cyan-500/10 ring-2 ring-cyan-500/30' : 'border-white/5 hover:border-white/20'"
+                                class="p-6 rounded-2xl border text-left transition-all duration-300 relative overflow-hidden group/card"
+                            >
+                                <div class="absolute -top-12 -right-12 w-24 h-24 bg-cyan-500/10 rounded-full blur-2xl group-hover/card:bg-cyan-500/20 transition-all"></div>
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl" :class="form.ui_template === 'spartankobs' ? 'bg-cyan-500 shadow-lg shadow-cyan-500/30' : 'bg-white/5'">📱</div>
+                                    <div>
+                                        <div class="text-sm font-black text-white uppercase tracking-wider">Mobile Spark</div>
+                                        <div class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">SpartanKobs • Mobile-First</div>
+                                    </div>
+                                    <div v-if="form.ui_template === 'spartankobs'" class="ml-auto">
+                                        <span class="text-[8px] font-black bg-cyan-500 text-white px-2 py-1 rounded-full uppercase">Aktif</span>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-slate-400 leading-relaxed">Optimasi mobile — bottom navigation bar, grid padat, judul di bawah thumbnail, tag scroller horizontal, search overlay, category bottom sheet.</p>
+                            </button>
+                        </div>
+                    </div>
 
                     <!-- Host Integration: Streamtape -->
                     <div class="glass-dark p-10 rounded-[2.5rem] border border-white/5 relative overflow-hidden group">
@@ -148,6 +204,22 @@ const submit = () => {
                                     </button>
                                 </div>
                                 <p class="text-[9px] text-slate-500 italic mt-1">Digunakan untuk sinkronisasi otomatis dan pemeriksaan status.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Content Security: Watermark -->
+                    <div class="glass-dark p-10 rounded-[2.5rem] border border-white/5 relative overflow-hidden group">
+                        <div class="absolute -top-24 -right-24 w-64 h-64 bg-amber-500/10 rounded-full blur-[100px] group-hover:bg-amber-500/20 transition-all duration-1000"></div>
+                        <h3 class="text-xl font-black text-white mb-8 flex items-center gap-4">
+                            <span class="w-2 h-8 bg-amber-500 rounded-full"></span>
+                            Keamanan & Branding Video
+                        </h3>
+                        <div class="grid grid-cols-1 gap-10">
+                            <div class="space-y-4">
+                                <InputLabel value="Teks Watermark Dinamis" class="!text-slate-500 !text-[10px] !font-black !uppercase !tracking-widest" />
+                                <input type="text" v-model="form.watermark_text" class="w-full bg-white/5 border-white/5 text-amber-400 font-bold text-sm rounded-xl focus:ring-amber-500/50 transition-all" placeholder="Contoh: VIDEYVIEW PROTECT" />
+                                <p class="text-[9px] text-slate-500 italic mt-1">Teks ini akan melayang secara acak di atas video untuk mencegah perekaman layar (Anti-Piracy Ghost).</p>
                             </div>
                         </div>
                     </div>
