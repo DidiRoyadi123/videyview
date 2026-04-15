@@ -1,8 +1,8 @@
 {
   "project_info": {
     "name": "VideyView",
-    "version": "6.0",
-    "codename": "UI Template Engine",
+    "version": "6.5",
+    "codename": "Categorization & Multi-Portal Mobility",
     "stack": "Laravel (Backend) + Inertia.js / Vue 3 (Frontend) + Tailwind CSS + XAMPP",
     "environment": "Windows / PHP 8.2+ / MySQL",
     "main_url": "http://localhost:8000"
@@ -16,6 +16,25 @@
     "security_note": "Forgot Password link redirected to Telegram; Admin can reset all passwords via Dashboard."
   },
   "key_features": {
+    "categorization_system": {
+      "architecture": "Full-stack categorization with dynamic admin management and user-facing portlets.",
+      "admin_panel": "Dedicated CRUD at /admin/categories with name, slug, icon (emoji/svg), and sort order.",
+      "video_integration": "nullable category_id field in videos table, eager-loaded for optimal performance.",
+      "user_ui": "Dynamic category list in mobile BottomNavBar, dedicated category landing views via slug routing."
+    },
+    "watchlist_v2": {
+      "status": "Verified & Restored",
+      "feature": "Integrated 'Simpan' tab in BottomNavBar for instant access to personalized bookmarks.",
+      "backend": "optimized whereHas('watchlists') query in primary VideoController."
+    },
+    "mobile_spark_v2": {
+      "updates": "Deep mobile optimization pass ensures zero component overlap.",
+      "features": [
+        "Dynamic Category Bottom Sheet: Glassmorphic category picker with icons.",
+        "Filter Indicators: Smart UI chips showing active category/tag filters with one-click clear.",
+        "Tag Scroller: Enhanced with active-state highlighting (Indigo gradient)."
+      ]
+    },
     "video_hosting": [
       "Local Direct Upload (PC/Device) to storage/app/public/videos",
       "Manual URL Link for external CDNs (Videy.co, etc.)",
@@ -86,240 +105,74 @@
       "available_templates": {
         "classic": {
           "name": "Classic Royale",
-          "description": "Desktop-first, floating navbar, overlay titles on thumbnails (desktop only), rounded-[40px] cards on desktop, mobile uses compact card-spark style, footer hidden on mobile, bottom nav visible on mobile.",
+          "description": "Desktop-first, floating navbar, overlay titles on thumbnails (desktop only), rounded-[40px] cards on desktop.",
           "mobile_behavior": "Title below thumbnail + CTA Tonton button + compact grid (gap-3) + bottom nav bar"
         },
         "spartankobs": {
           "name": "Mobile Spark",
-          "description": "Mobile-first SpartanKobs-inspired, persistent bottom navigation bar, titles always below thumbnails, compact grid (gap-3), tag scroller, search overlay, category bottom sheet, footer hidden on mobile.",
+          "description": "Mobile-first SpartanKobs-inspired, persistent bottom navigation bar, titles always below thumbnails, compact grid (gap-3), tag scroller, category bottom sheet.",
           "mobile_behavior": "Same as classic mobile + tag scroller always visible + search handled by bottom nav overlay"
         }
       },
-      "admin_control": "Admin > Konfigurasi Sistem > 'Mesin Templat Antarmuka' card with visual template picker cards.",
+      "admin_control": "Admin > Konfigurasi Sistem > 'Mesin Templat Antarmuka' card.",
       "storage": "settings table (key='ui_template', value='classic'|'spartankobs')",
       "shared_via": "HandleInertiaRequests.php -> $page.props.ui_template"
     },
-    "architecture": {
-      "isSpark_provider": "MainLayout.vue provides computed 'isSpark' (true when ui_template='spartankobs') to all child components via Vue provide/inject.",
-      "conditional_rendering": "All template-specific UI is wrapped in v-if='isSpark' / :class conditionals. No separate component trees.",
-      "mobile_first_universal": "Both templates now share mobile-first fundamentals: bottom nav bar, safe-bottom padding, compact cards, CTA buttons, hidden footer on mobile."
-    },
     "bottom_nav_bar": {
       "component": "Components/BottomNavBar.vue",
-      "visibility": "lg:hidden (mobile/tablet only, hidden on desktop). Shows on BOTH templates.",
       "tabs": ["Beranda (home)", "Cari (search overlay)", "Kategori (bottom sheet)", "Simpan (watchlist)", "Profil/Masuk"],
       "features": [
         "Glassmorphic design with active indicator line",
         "Search overlay with popular tags",
-        "Category bottom sheet with filters + tags",
+        "Category bottom sheet with DYNAMIC categories + filters + tags",
         "Safe area padding for notched phones"
-      ]
-    },
-    "popular_tags_system": {
-      "shared_prop": "$page.props.popular_tags",
-      "source": "Tag model with withCount('videos'), top 12, cached 5 minutes",
-      "usage": "Tag scroller (Index.vue - both templates), Search overlay (BottomNavBar), Category sheet (BottomNavBar)",
-      "guard": "Not shared on admin/auth routes"
-    },
-    "mobile_first_components": {
-      "video_card": {
-        "thumbnail": "aspect-video with card-spark class (rounded-xl, overflow-hidden)",
-        "title_placement": {
-          "mobile": "ALWAYS below thumbnail for both templates (text-[10px] font-bold line-clamp-2)",
-          "desktop_classic": "Overlay gradient at bottom of thumbnail (hidden on mobile, visible from sm breakpoint)",
-          "desktop_spark": "Always below thumbnail"
-        },
-        "cta_button": "Gradient indigo-to-violet 'Tonton' button with play icon, full-width, py-1.5 on mobile / py-2 on desktop",
-        "badges": {
-          "premium": "Top-left, amber gradient, crown emoji + 'VIP' text",
-          "free": "Top-left, indigo-600 background",
-          "views": "Bottom-right, badge-duration class with eye icon + formatted count"
-        }
-      },
-      "hero_carousel": {
-        "height": "clamp(180px, 40vw, 500px) - responsive across all viewports",
-        "mobile_rounding": "rounded-2xl",
-        "desktop_rounding_classic": "rounded-[40px]",
-        "desktop_rounding_spark": "rounded-[32px]"
-      },
-      "search_bar": {
-        "mobile": "Hidden (handled by bottom nav search overlay)",
-        "desktop": "Full search input visible in filter bar"
-      },
-      "filter_pills": {
-        "display": "Horizontal scrollable pills (overflow-x-auto, no-scrollbar)",
-        "items": ["Semua", "Populer", "Gratis", "Premium"],
-        "active_style": "Gradient indigo-to-violet background"
-      },
-      "tag_scroller": {
-        "classic": "Visible on both mobile and desktop when tags exist",
-        "spark": "Visible on both mobile and desktop when tags exist",
-        "layout": "Horizontal scroll with tag-chip style"
-      }
-    },
-    "affected_files": {
-      "backend": [
-        "app/Http/Middleware/HandleInertiaRequests.php: Shares ui_template + popular_tags globally via Inertia",
-        "app/Http/Controllers/Admin/SettingController.php: Includes ui_template in settings CRUD (default: 'classic')"
-      ],
-      "admin_ui": [
-        "resources/js/Pages/Admin/Settings.vue: Template picker card with Classic Royale vs Mobile Spark visual selection, cyan accent for new card"
-      ],
-      "layout": [
-        "resources/js/Layouts/MainLayout.vue: isSpark computed + provide, unconditional BottomNavBar, safe-bottom always, footer hidden lg:block always, px-3 sm:px-6 header padding"
-      ],
-      "pages": [
-        "resources/js/Pages/Videos/Index.vue: Universal mobile-first grid (gap-3), title below thumb on mobile for both templates, CTA Tonton button, tag scroller for both, search hidden on mobile, hero clamp(180px,40vw,500px)",
-        "resources/js/Pages/Videos/Show.vue: Universal mobile-first padding (px-2 sm:px-6), rounded-2xl sm:rounded-[40px], min-h-[250px] player on mobile, compact info cards p-4 sm:p-8"
-      ],
-      "components": [
-        "resources/js/Components/BottomNavBar.vue: 5-tab mobile nav (Beranda, Cari, Kategori, Simpan, Profil) with glassmorphic design, search overlay, category bottom sheet"
-      ],
-      "css": [
-        "resources/css/app.css: .bottom-nav, .card-spark, .filter-pill, .tag-chip, .badge-duration, .search-overlay, .safe-bottom utility classes"
       ]
     }
   },
   "history_of_improvements": {
-    "v2.5_security_hardening": {
-      "ad_leakage_prevention": {
-        "problem": "Sensitive pages like Login/Admin were loading ad scripts and anti-adblock modals.",
-        "solution": "Implemented route-aware middleware and strict component-level guards.",
-        "technical_details": [
-          "Middleware (HandleInertiaRequests.php): Conditional prop sharing ensures 'ads' and 'anti_adblock_enabled' are null/false for restricted routes.",
-          "AdHandler.vue: Component now monitors window.route() and executes aggressive DOM cleanup on unmount.",
-          "AntiAdblockGuard.vue: Detection logic and DOM baits are explicitly disabled for admin routes and authenticated admins."
-        ]
-      },
-      "anti_adblock_toggle": {
-        "feature": "Admin controllable toggle for global anti-adblock detection.",
-        "implementation": "Setting 'anti_adblock_enabled' stored in DB, shared via Inertia, and used for conditional rendering in MainLayout.vue."
-      }
+    "v6.6_admin_royale_light_normalization": {
+      "feature": "Fully normalized Royale Light aesthetic across entire Admin Panel.",
+      "components": [
+        "Global: Base Vue components (TextInput, InputLabel, Buttons, Checkbox, Modal) completely overhauled from Breeze defaults to dark-themed Royale Light.",
+        "Layout: AuthenticatedLayout padding reduced for higher information density.",
+        "Profile Pages: Synced Profile/Edit and Partials with the dark theme and structural padding.",
+        "Categories: Built-in interactive Emoji Picker fully implemented for creating/editing categories without copy-pasting."
+      ]
     },
-    "v2.6_distribution_pipeline": {
-      "doodstream_integration": {
-        "goal": "High-performance video mirroring with Indonesian ISP bypass.",
-        "components": ["Admin Dashboard: Distribution Pipeline visualizes success/pending counts for both Streamtape and Doodstream."]
-      },
-      "player_server_selector": {
-        "logic": "Dynamic multi-host switching with static user labels.",
-        "naming_convention": {
-          "Server 1": "Local storage (Origin)",
-          "Server 2": "Streamtape Mirror",
-          "Server 3": "Doodstream Mirror",
-          "Server 4": "Videy Backup (Remote Source)"
-        }
-      }
-    },
-    "v2.7_premium_overhaul": {
-      "admin_dashboard": {
-        "ui_design": "Glassmorphism architecture using 'backdrop-blur-20px' and 'bg-slate-800/40'. Features vibrant duo-tone cards with pulsed status indicators.",
-        "data_engine": "Real-time statistics cached for 60s.",
-        "activity_log": "Integrated 'Recent Logistics' feed showing the last 5 video distributions."
-      },
-      "dynamic_server_switcher": {
-        "public_labels": "Static naming (Server 1-4) for consistent UX.",
-        "admin_labels": "Dynamic identity masking; Admins see real host names.",
-        "visibility_logic": "Buttons only appear if hosting_status === success AND mirror_links[host] is not null."
-      }
-    },
-    "v3.0_autonomous_media_empire": {
-      "fortress_backup": "One-click DB Backup via Admin Dashboard.",
-      "robot_auto_healer": "Artisan Scheduler for autonomous task execution.",
-      "aura_theme_engine": "Theme Engine v1.0 with Dark/Light mode."
-    },
-    "v5.0_imperium_overhaul": {
-      "infrastructure_fortress": {
-        "admin_log_viewer": "Full-stack diagnostic dashboard (LogController + Admin/Logs.vue).",
-        "pwa_premium": "Full PWA manifest with custom maskable icons."
-      },
-      "ghost_automation": {
-        "auto_healing_engine": "CheckVideoHealthJob upgraded to autonomously trigger re-distribution.",
-        "seo_pro": "Dynamic OpenGraph pipeline injected through HandleInertiaRequests middleware."
-      },
-      "elite_ux": {
-        "theme_engine_v5": "Global Dark/Light mode with CSS variable architecture and localStorage persistence.",
-        "custom_player_skins": "Injected CSS Shadow DOM overrides for Indigo-accented player."
-      }
+    "v6.5_categorization": {
+      "feature": "Dynamic categorization system for videos.",
+      "components": [
+        "Admin/Categories.vue: Full CRUD for categories with name/icon/order.",
+        "Admin/Videos/Index.vue: Category selection during video submission + category column in management table.",
+        "BottomNavBar.vue: Integrated dynamic category picker in the mobile bottom sheet."
+      ],
+      "database": "Added categories table and videos.category_id field."
     },
     "v6.0_ui_template_engine": {
-      "core_feature": "Admin-switchable UI templates (Classic Royale / Mobile Spark) via settings DB.",
-      "mobile_first_universal": "Both templates now enforce mobile-first design: bottom nav on mobile, titles below thumbnails, CTA buttons, compact grid gaps, hidden search (bottom nav overlay), hidden footer on mobile.",
+      "core_feature": "Admin-switchable UI templates (Classic Royale / Mobile Spark).",
       "new_components": [
-        "BottomNavBar.vue: 5-tab persistent mobile navigation (Beranda, Cari, Kategori, Simpan, Profil)",
-        "CTA 'Tonton' button: Gradient indigo-to-violet play button on every video card"
-      ],
-      "new_css_classes": [
-        ".bottom-nav: Fixed bottom glassmorphic navigation bar",
-        ".card-spark: Compact video card with rounded-xl corners",
-        ".filter-pill: Horizontal scrollable pill-shaped category filters",
-        ".tag-chip: Compact tag chips for horizontal tag scroller",
-        ".badge-duration: Views count badge on thumbnail corner",
-        ".safe-bottom: Dynamic padding for bottom nav clearance + safe area"
-      ],
-      "admin_panel": "Visual template picker with preview cards at Admin > Konfigurasi Sistem > Mesin Templat Antarmuka"
-    }
-  },
-  "external_hosting": {
-    "primary": "Streamtape (Host Integration 2.0: Editable via Admin > Settings).",
-    "secondary": "Doodstream (Secondary/Backup Host with ISP Bypass).",
-    "automation": "Zero-Click: Mirroring starts automatically after Local Worker (sync.py) reports completion.",
-    "security_fixes": {
-      "ad_leakage_mitigation": {
-        "middleware": "Implemented route-aware conditional prop sharing in HandleInertiaRequests.php.",
-        "components": "Hardened AdHandler.vue and AntiAdblockGuard.vue with route-based guards.",
-        "validation": "No ad scripts or baits on Login, Register, or Admin Dashboard pages."
-      }
-    }
-  },
-  "external_hosting_credentials": {
-    "streamtape": {
-      "email": "hikmathul123@gmail.com",
-      "password": "1Nd4hy4n1",
-      "api_login": "ba1402c48869ff3f5d71",
-      "api_key": "ZKbxp4w8VjIqxXb",
-      "base_url": "https://api.streamtape.com",
-      "status": "Dinamis: Managed via Admin Panel Database (~settings table).",
-      "active": true
-    },
-    "doodstream": {
-      "api_key": "561492l0isghhqftfzqpnv",
-      "base_url": "https://doodapi.co/api/",
-      "isp_bypass": {
-        "verified_ip": "172.67.70.170",
-        "technique": "CURLOPT_RESOLVE mapping in BaseDriver.php"
-      },
-      "constraints": "10 requests per second rate limit.",
-      "status": "Ready for Driver Implementation."
+        "BottomNavBar.vue: 5-tab persistent mobile navigation.",
+        "CTA 'Tonton' button: Gradient indigo-to-violet play button on every video card."
+      ]
     }
   },
   "important_paths": {
     "videos": "storage/app/public/videos",
     "thumbnails": "storage/app/public/thumbnails",
-    "admin_fortress_hardening": [
-      "Secret Path Obfuscation: Admin panel moved to configurable .env variable (ADMIN_PATH).",
-      "Audit Black Box: Full activity logging in admin_activities table.",
-      "Login Throttling: Strict rate limiting on login and admin routes.",
-      "Dynamic Host Logic: MultiHostServiceProvider injected via database settings."
-    ]
+    "categories": "resources/js/Pages/Admin/Categories.vue"
   },
   "maintenance_logs_current": [
+    "v6.6 DEPLOYMENT: Royale Light Admin Panel Component Normalization.",
+    "v6.6: Re-themed core UI components (TextInput, Checkbox, Modal, Buttons) to dark-glass Royale aesthetic.",
+    "v6.6: Fully implemented inline Emoji Picker in Categories management.",
+    "v6.6: Normalized spacing, typography, and pad layouts across all admin dashboard pages.",
+    "v6.5 DEPLOYMENT: Full-stack Categorization System active.",
+    "v6.5: Admin CRUD for categories with icon/emoji support.",
+    "v6.5: Integrated categorization in Video Management and User BottomNavBar.",
+    "v6.5: Fixed 'Simpan' (Watchlist) filtering on Home Page.",
+    "v6.5: Enhanced Mobile Spark with active filter indicators and clear-all logic.",
     "v6.0 DEPLOYMENT: UI Template Engine with admin-switchable templates (Classic Royale / Mobile Spark).",
     "v6.0: BottomNavBar component visible on BOTH templates (5-tab mobile navigation).",
-    "v6.0: CTA 'Tonton' button added to every video card.",
-    "v6.0: Mobile-first enforcement - titles below thumbnails, compact grid, hidden search, hidden footer on mobile for ALL templates.",
-    "v6.0: Popular tags global sharing via Inertia (cached, top 12 by video count).",
-    "v6.0: Template-conditional rendering using provide/inject isSpark architecture.",
-    "v6.0: Hero carousel uses clamp(180px, 40vw, 500px) for responsive height.",
-    "v6.0: New CSS component classes (.bottom-nav, .card-spark, .filter-pill, .tag-chip, .badge-duration, .safe-bottom).",
-    "v5.0 DEPLOYMENT: Full scale Imperium Overhaul active.",
-    "v5.0: Deployed Centralized Log Viewer for real-time diagnostic transparency.",
-    "v5.0: Upgraded Ghost Auto-Healer with active host re-distribution logic.",
-    "v5.0: Activated SEO Pro with dynamic OpenGraph meta injection (Social Previews).",
-    "v5.0: Launched Aura Theme Engine (Dark/Light mode) with Indigo premium skinning.",
-    "v5.0: Finalized Rebranding: Purged 'Ads' terminology across system configuration.",
-    "v3.0_Upgrade (Tiga Pilar): Implemented 'Fortress Lockdown' (One-click DB Backup).",
-    "v3.0_Upgrade (Tiga Pilar): Deployed 'Robot Mandor Otonom' (Artisan Scheduler).",
-    "v3.0_Upgrade (Tiga Pilar): Installed 'Aura Mandor' (Theme Engine v1.0)."
+    "v6.0: CTA 'Tonton' button added to every video card."
   ]
 }

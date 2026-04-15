@@ -47,6 +47,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/videos/bulk', [App\Http\Controllers\Admin\VideoController::class, 'storeBulk'])->name('videos.bulk');
         Route::post('/videos/bulk-store', [App\Http\Controllers\Admin\VideoController::class, 'bulkStoreFromUrls'])->name('videos.bulk-store');
         Route::delete('/videos/bulk', [App\Http\Controllers\Admin\VideoController::class, 'bulkDestroy'])->name('videos.bulk-destroy');
+        Route::patch('/videos/{video}', [App\Http\Controllers\Admin\VideoController::class, 'update'])->name('videos.update');
         Route::delete('/videos/{video}', [App\Http\Controllers\Admin\VideoController::class, 'destroy'])->name('videos.destroy');
         Route::post('/videos/bulk-download', [App\Http\Controllers\Admin\VideoController::class, 'bulkDownload'])->name('videos.bulk-download');
         Route::post('/videos/bulk-download-all', [App\Http\Controllers\Admin\VideoController::class, 'downloadAllPending'])->name('videos.bulk-download-all');
@@ -79,6 +80,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Logs
         Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
         Route::post('/logs/clear', [LogController::class, 'clear'])->name('logs.clear');
+
+        // Categories
+        Route::get('/categories', [App\Http\Controllers\Admin\CategoryController::class, 'index'])->name('categories.index');
+        Route::post('/categories', [App\Http\Controllers\Admin\CategoryController::class, 'store'])->name('categories.store');
+        Route::patch('/categories/{category}', [App\Http\Controllers\Admin\CategoryController::class, 'update'])->name('categories.update');
+        Route::delete('/categories/{category}', [App\Http\Controllers\Admin\CategoryController::class, 'destroy'])->name('categories.destroy');
     });
 });
 

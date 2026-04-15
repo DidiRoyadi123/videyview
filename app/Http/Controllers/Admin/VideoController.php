@@ -11,12 +11,14 @@ use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
+use App\Models\Category;
 
 class VideoController extends Controller
 {
     public function index()
     {
-        $videos = Video::orderByRaw("CASE WHEN download_status = 'completed' THEN 0 ELSE 1 END")
+        $videos = Video::with('category')
+            ->orderByRaw("CASE WHEN download_status = 'completed' THEN 0 ELSE 1 END")
             ->latest()
             ->paginate(10);
 
@@ -81,6 +83,7 @@ class VideoController extends Controller
             'host_stats' => $hostStats,
             'recent_activity' => $recentActivity,
             'proxy_enabled' => \App\Models\Setting::getValue('proxy_enabled', '1') === '1',
+            'categories' => Category::orderBy('order')->get(['id', 'name']),
         ]);
     }
 
@@ -97,6 +100,7 @@ class VideoController extends Controller
             'video_file' => 'required_without:url|nullable|file|mimes:mp4,mov,avi,wmv|max:512000', // 500MB max
             'is_premium' => 'boolean',
             'skip_download' => 'boolean',
+            'category_id' => 'nullable|exists:categories,id',
         ]);
 
         $title = $request->title;
@@ -117,8 +121,9 @@ class VideoController extends Controller
                 'slug' => $slug,
                 'url' => asset('storage/' . $path),
                 'local_path' => $path,
-                'download_status' => 'completed',
-                'is_premium' => $is_premium,
+                'download_status' => $request->skip_download ? 'completed' : 'completed',
+                'is_premium' => $request->is_premium ?? true,
+                'category_id' => $request->category_id,
             ]);
 
             // Auto-chain: mirroring to Streamtape after manual PC upload
@@ -136,7 +141,9 @@ class VideoController extends Controller
                 'title' => $title,
                 'slug' => $slug,
                 'url' => $url,
-                'is_premium' => $is_premium,
+                'download_status' => $request->skip_download ? 'completed' : null,
+                'is_premium' => $request->is_premium ?? true,
+                'category_id' => $request->category_id,
             ]);
 
             if (!$request->skip_download) {
@@ -148,6 +155,25 @@ class VideoController extends Controller
         $this->applyAutoFreeLogic($video);
 
         return back()->with('success', 'Video berhasil ditambahkan.');
+    }
+
+    public function update(Request $request, Video $video)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'category_id' => 'nullable|exists:categories,id',
+            'is_premium' => 'boolean',
+        ]);
+
+        $video->update([
+            'title' => $request->title,
+            'category_id' => $request->category_id,
+            'is_premium' => $request->is_premium,
+        ]);
+
+        Cache::forget("video_show_{$video->slug}");
+
+        return back()->with('success', 'Video berhasil diperbarui.');
     }
 
     public function storeBulk(Request $request)

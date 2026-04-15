@@ -9,13 +9,14 @@ const searchQuery = ref('');
 
 const isActive = (routeCheck) => {
     const current = route().current();
-    if (routeCheck === 'home') return current === 'home' && !page.props.currentFilter;
+    if (routeCheck === 'home') return current === 'home' && !page.props.currentFilter && !page.props.currentCategory;
     if (routeCheck === 'saved') return current === 'home' && page.props.currentFilter === 'saved';
     if (routeCheck === 'profile') return current === 'dashboard' || current === 'profile.edit';
     return current === routeCheck;
 };
 
 const popularTags = computed(() => page.props.popular_tags || []);
+const categories = computed(() => page.props.categories || []);
 
 const handleSearch = () => {
     if (searchQuery.value.trim()) {
@@ -32,6 +33,11 @@ const closeSearch = () => {
 
 const navigateTag = (slug) => {
     router.get(route('home'), { tag: slug });
+    showCategories.value = false;
+};
+
+const navigateCategory = (slug) => {
+    router.get(route('home'), { category: slug });
     showCategories.value = false;
 };
 
@@ -184,6 +190,23 @@ const navigateFilter = (filter) => {
                         {{ f.label }}
                     </button>
                 </div>
+
+                <!-- Categories Section -->
+                <template v-if="categories.length">
+                    <h3 class="text-[10px] font-bold uppercase tracking-widest mb-3" :style="{ color: 'rgb(var(--text-muted))' }">Pilih Kategori</h3>
+                    <div class="grid grid-cols-2 gap-2 mb-6">
+                        <button 
+                            v-for="cat in categories" 
+                            :key="cat.id" 
+                            @click="navigateCategory(cat.slug)"
+                            class="flex items-center gap-3 p-3 rounded-2xl border transition-all active:scale-95"
+                            :class="page.props.currentCategory === cat.slug ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg' : 'bg-[rgb(var(--bg-input))] border-[rgb(var(--border-main))] text-[rgb(var(--text-main))]'"
+                        >
+                            <span class="text-xl">{{ cat.icon || '📁' }}</span>
+                            <span class="text-xs font-black uppercase tracking-tight">{{ cat.name }}</span>
+                        </button>
+                    </div>
+                </template>
 
                 <!-- Tags Section -->
                 <template v-if="popularTags.length">

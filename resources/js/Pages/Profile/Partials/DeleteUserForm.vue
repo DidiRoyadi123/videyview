@@ -41,31 +41,26 @@ const closeModal = () => {
 <template>
     <section class="space-y-6">
         <header>
-            <h2 class="text-lg font-medium text-gray-900">
-                Delete Account
+            <h2 class="text-sm font-black text-red-400 uppercase tracking-widest flex items-center gap-2 italic">
+                <span class="w-1 h-3 bg-red-500 rounded-full"></span>
+                Hapus Akun
             </h2>
 
-            <p class="mt-1 text-sm text-gray-600">
-                Once your account is deleted, all of its resources and data will
-                be permanently deleted. Before deleting your account, please
-                download any data or information that you wish to retain.
+            <p class="mt-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed">
+                Setelah akun Anda dihapus, semua sumber daya dan datanya akan dihapus secara permanen.
             </p>
         </header>
 
-        <DangerButton @click="confirmUserDeletion">Delete Account</DangerButton>
+        <DangerButton @click="confirmUserDeletion" class="!py-2.5 !px-6 !text-[10px] !rounded-xl !uppercase !tracking-widest">Hapus Akun Saya</DangerButton>
 
         <Modal :show="confirmingUserDeletion" @close="closeModal">
-            <div class="p-6">
-                <h2
-                    class="text-lg font-medium text-gray-900"
-                >
-                    Are you sure you want to delete your account?
+            <div class="p-6 bg-slate-900 text-white rounded-3xl border border-white/10 shadow-2xl">
+                <h2 class="text-lg font-black italic uppercase tracking-tight text-white">
+                    Apakah Anda yakin ingin menghapus akun?
                 </h2>
 
-                <p class="mt-1 text-sm text-gray-600">
-                    Once your account is deleted, all of its resources and data
-                    will be permanently deleted. Please enter your password to
-                    confirm you would like to permanently delete your account.
+                <p class="mt-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                    Tindakan ini permanen. Silakan masukkan kata sandi Anda untuk mengonfirmasi bahwa Anda ingin menghapus akun secara permanen.
                 </p>
 
                 <div class="mt-6">
@@ -80,26 +75,26 @@ const closeModal = () => {
                         ref="passwordInput"
                         v-model="form.password"
                         type="password"
-                        class="mt-1 block w-3/4"
-                        placeholder="Password"
+                        class="block w-full !bg-black/40 !border-white/10 !text-white !text-sm !px-4 !py-3 !rounded-xl"
+                        placeholder="Kata Sandi Anda"
                         @keyup.enter="deleteUser"
                     />
 
-                    <InputError :message="form.errors.password" class="mt-2" />
+                    <InputError :message="form.errors.password" class="mt-2 text-xs" />
                 </div>
 
-                <div class="mt-6 flex justify-end">
-                    <SecondaryButton @click="closeModal">
-                        Cancel
+                <div class="mt-8 flex justify-end gap-3">
+                    <SecondaryButton @click="closeModal" class="!bg-white/5 !text-slate-400 !border-white/10 !px-4 !py-2 !text-[10px] !rounded-lg uppercase font-bold tracking-widest">
+                        Batal
                     </SecondaryButton>
 
                     <DangerButton
-                        class="ms-3"
+                        class="ms-3 !bg-red-600 hover:!bg-red-500 !text-white !px-6 !py-2 !text-[10px] !rounded-lg uppercase font-bold tracking-widest"
                         :class="{ 'opacity-25': form.processing }"
                         :disabled="form.processing"
                         @click="deleteUser"
                     >
-                        Delete Account
+                        Hapus Permanen
                     </DangerButton>
                 </div>
             </div>

@@ -20,6 +20,7 @@ class Video extends Model
         'views',
         'last_check_at',
         'health_report',
+        'category_id',
     ];
 
     protected $casts = [
@@ -48,6 +49,11 @@ class Video extends Model
     public function tags()
     {
         return $this->belongsToMany(Tag::class);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
     }
 
     public function likes()

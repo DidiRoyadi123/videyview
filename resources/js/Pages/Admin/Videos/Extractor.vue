@@ -5,7 +5,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Checkbox from '@/Components/Checkbox.vue';
 import { useToast } from '@/Composables/useToast';
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 
 const { success: toastSuccess, error: toastError, info: toastInfo } = useToast();
 
@@ -72,7 +72,6 @@ const handleExtract = () => {
 
     extractedUrls.value = uniqueCleaned;
 
-    // Zero-Click Automation: Trigger bulk save if autoSave is enabled
     if (autoSave.value && uniqueCleaned.length > 0) {
         setTimeout(() => submitBulk(), 100);
     }
@@ -168,7 +167,6 @@ const copyCrawlScript = () => {
 
     const result = Array.from(foundLinks).join('\\n');
     if (result) {
-        // Fallback UI helper
         const showResultUI = (msg) => {
              const div = document.createElement('div');
              div.id = 'crawl-result-overlay';
@@ -221,126 +219,132 @@ const copyCrawlScript = () => {
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-3xl font-black text-white italic uppercase tracking-tighter">Link Extractor</h2>
-                <div class="bg-indigo-500/10 px-4 py-1 rounded-full border border-indigo-500/20">
-                    <span class="text-[10px] font-black uppercase text-indigo-400 tracking-widest">Bulk Discovery Tool</span>
+            <div class="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                    <h2 class="text-2xl sm:text-3xl font-black text-white italic uppercase tracking-tight">
+                        Link <span class="text-indigo-500">Extractor</span>
+                    </h2>
+                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-widest mt-1">Alat Penemuan Konten Massal</p>
+                </div>
+                <div class="bg-indigo-500/10 px-4 py-2 rounded-xl border border-indigo-500/20">
+                    <span class="text-xs font-bold uppercase text-indigo-400 tracking-widest leading-none">Bulk Tool</span>
                 </div>
             </div>
         </template>
 
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="py-6">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Input Section -->
-                    <div class="glass-dark p-8 rounded-[2rem] border border-white/5 relative overflow-hidden group">
-                        <div class="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl group-hover:bg-indigo-500/10 transition-colors"></div>
-                        <h3 class="text-xl font-black text-white mb-6 flex items-center gap-3">
-                            <span class="w-2 h-8 bg-indigo-500 rounded-full"></span>
-                            Raw Content
+                    <div class="glass-dark p-5 sm:p-6 rounded-2xl border border-white/10 relative overflow-hidden group">
+                        <div class="absolute -top-12 -right-12 w-48 h-48 bg-indigo-500/5 rounded-full blur-[60px]"></div>
+                        <h3 class="text-base font-black text-white mb-6 flex items-center gap-3 uppercase tracking-tight">
+                            <span class="w-1 h-5 bg-indigo-600 rounded-full"></span>
+                            Konten Mentah (Raw)
                         </h3>
                         
-                        <div class="space-y-4">
+                        <div class="space-y-6">
                             <!-- Crawler Helper -->
-                            <div class="p-6 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 space-y-4">
-                                <div class="flex items-center justify-between">
-                                    <h4 class="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                            <div class="p-5 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 space-y-4">
+                                <div class="flex items-center justify-between flex-wrap gap-4">
+                                    <h4 class="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                                         </svg>
-                                        Auto-Crawl Script
+                                        Script Auto-Crawl
                                     </h4>
-                                    <div class="flex items-center gap-2">
-                                        <input type="number" v-model="crawlLimit" class="w-16 !bg-white/5 !border-white/10 !text-white text-[10px] font-bold rounded-lg px-2 py-1 focus:ring-1 focus:ring-indigo-500/50" />
-                                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Limit</span>
+                                    <div class="flex items-center gap-3 bg-black/40 px-3 py-1 rounded-full border border-white/5">
+                                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Limit</span>
+                                        <input type="number" v-model="crawlLimit" class="w-12 !bg-transparent !border-none !text-white text-xs font-black px-0 py-0 focus:ring-0 text-center" />
                                     </div>
                                 </div>
-                                <p class="text-[10px] text-slate-400 leading-relaxed">
-                                    Copy this script and paste it into the <b>Console (F12)</b> of a Nitter or X mirror to automatically collect links.
+                                <p class="text-[10px] text-slate-400 leading-relaxed font-bold italic">
+                                    Copy - Paste script ini ke Console (F12) untuk mengumpulkan link otomatis.
                                 </p>
-                                <button @click="copyCrawlScript" class="w-full py-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 text-[10px] font-black uppercase tracking-widest rounded-xl border border-indigo-500/30 transition-all">
-                                    {{ scriptCopied ? 'Script Copied!' : 'Copy Crawl Script' }}
+                                <button @click="copyCrawlScript" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all active:scale-95">
+                                    {{ scriptCopied ? 'BERHASIL DISALIN!' : 'SALIN SKRIP CRAWL' }}
                                 </button>
                             </div>
 
                             <!-- Mirror Links -->
                             <div class="flex flex-wrap gap-2">
-                                <a v-for="mirror in mirrors" :key="mirror.name" :href="mirror.url" target="_blank" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-indigo-400 transition-all flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                <a v-for="mirror in mirrors" :key="mirror.name" :href="mirror.url" target="_blank" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-bold text-slate-400 transition-all flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                     </svg>
                                     {{ mirror.name }}
                                 </a>
                             </div>
 
-                            <p class="text-[10px] font-black uppercase text-slate-500 tracking-widest">
-                                Or manually paste text below:
-                            </p>
-                            <textarea 
-                                v-model="rawText"
-                                class="w-full h-48 bg-white/5 border border-white/10 rounded-2xl p-4 text-indigo-300 font-mono text-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all outline-none"
-                                placeholder="Paste raw text here..."
-                            ></textarea>
+                            <div class="space-y-2">
+                                <p class="text-[10px] font-bold uppercase text-slate-500 tracking-widest ml-1 italic">
+                                    Atau tempel teks manual:
+                                </p>
+                                <textarea 
+                                    v-model="rawText"
+                                    class="w-full h-40 bg-black/40 border-none rounded-2xl p-4 text-indigo-300 font-mono text-sm focus:ring-1 focus:ring-indigo-500/30 transition-all outline-none shadow-inner"
+                                    placeholder="Paste raw text here..."
+                                ></textarea>
+                            </div>
                             
-                            <div class="flex items-center justify-between">
+                            <div class="flex flex-col gap-4">
                                 <div class="flex items-center gap-6">
                                     <label class="flex items-center group cursor-pointer">
-                                        <Checkbox v-model:checked="isPremium" class="!bg-white/5 !border-white/10 !text-indigo-600 rounded" />
-                                        <span class="ms-2 text-xs font-bold text-slate-400 group-hover:text-slate-200 transition">Mark as Premium</span>
+                                        <Checkbox v-model:checked="isPremium" class="w-5 h-5 !bg-white/5 !border-none !text-indigo-600 rounded-lg" />
+                                        <span class="ms-2 text-[10px] font-bold text-slate-400 group-hover:text-white transition uppercase tracking-widest">Premium Content</span>
                                     </label>
                                     
                                     <label class="flex items-center group cursor-pointer">
-                                        <Checkbox v-model:checked="autoSave" class="!bg-emerald-500/10 !border-emerald-500/20 !text-emerald-500 rounded" />
-                                        <span class="ms-2 text-[10px] font-black uppercase tracking-widest text-emerald-500/80 group-hover:text-emerald-400 transition flex items-center gap-1.5">
-                                            <span v-if="autoSave" class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                            Auto-Save Mode
+                                        <Checkbox v-model:checked="autoSave" class="w-5 h-5 !bg-emerald-500/10 !border-none !text-emerald-500 rounded-lg" />
+                                        <span class="ms-2 text-[10px] font-bold uppercase tracking-widest text-emerald-500/80 group-hover:text-emerald-400 transition flex items-center gap-2 italic">
+                                            Auto Save
                                         </span>
                                     </label>
                                 </div>
-                                <PrimaryButton @click="handleExtract" class="btn-premium px-8">Extract & Process</PrimaryButton>
+                                <PrimaryButton @click="handleExtract" class="!w-full !py-3 !text-xs !rounded-xl !tracking-widest">EKSTRAKSI & PROSES</PrimaryButton>
                             </div>
                         </div>
                     </div>
 
                     <!-- Results Section -->
-                    <div class="glass-dark p-8 rounded-[2rem] border border-white/5 relative overflow-hidden flex flex-col">
-                        <h3 class="text-xl font-black text-white mb-6 flex items-center justify-between">
+                    <div class="glass-dark p-5 sm:p-6 rounded-2xl border border-white/10 relative overflow-hidden flex flex-col shadow-xl">
+                        <h3 class="text-base font-black text-white mb-6 flex items-center justify-between uppercase tracking-tight">
                             <div class="flex items-center gap-3">
-                                <span class="w-2 h-8 bg-purple-500 rounded-full"></span>
-                                Extracted Links
+                                <span class="w-1 h-5 bg-purple-500 rounded-full"></span>
+                                Tautan Terekstraksi
                             </div>
-                            <span v-if="extractedUrls.length" class="text-xs font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-3 py-1 rounded-full">
-                                {{ extractedUrls.length }} Found
+                            <span v-if="extractedUrls.length" class="text-[9px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20">
+                                {{ extractedUrls.length }} FOUND
                             </span>
                         </h3>
 
                         <div v-if="extractedUrls.length === 0" class="flex-1 flex flex-col items-center justify-center opacity-30 py-12">
-                            <div class="text-5xl mb-4">🔍</div>
-                            <p class="text-xs font-black uppercase tracking-widest text-slate-500">No links extracted yet</p>
+                            <div class="text-4xl mb-3">🔍</div>
+                            <p class="text-[10px] font-black uppercase tracking-widest text-slate-500">No links extracted</p>
                         </div>
                         
                         <div v-else class="flex-1 flex flex-col h-full">
-                            <div class="flex-1 overflow-y-auto max-h-96 space-y-3 pr-2 scrollbar-thin scrollbar-thumb-white/10">
-                                <div v-for="(url, index) in extractedUrls" :key="index" class="bg-white/5 border border-white/5 p-3 rounded-xl flex items-center justify-between group/item hover:bg-white/10 transition-all">
+                            <div class="flex-1 overflow-y-auto max-h-[22rem] space-y-2 pr-2 custom-scrollbar">
+                                <div v-for="(url, index) in extractedUrls" :key="index" class="bg-white/5 border border-white/5 p-3 rounded-xl flex items-center justify-between group/item hover:bg-white/[0.08] transition-all duration-200">
                                     <div class="overflow-hidden">
-                                        <div class="text-[10px] text-indigo-400 font-black uppercase tracking-widest mb-0.5">Link #{{ index + 1 }}</div>
-                                        <div class="text-xs text-slate-300 truncate w-64 font-mono">{{ url }}</div>
+                                        <div class="text-[9px] text-indigo-400 font-bold uppercase tracking-widest mb-1 italic">#{{ index + 1 }}</div>
+                                        <div class="text-xs text-slate-300 truncate w-64 sm:w-80 font-mono group-hover:text-white transition-colors">{{ url }}</div>
                                     </div>
-                                    <button @click="removeUrl(index)" class="text-slate-500 hover:text-red-500 transition-colors">
+                                    <button @click="removeUrl(index)" class="p-2 text-slate-600 hover:text-red-500 transition-all active:scale-95">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>
                                     </button>
                                 </div>
                             </div>
 
-                            <div class="mt-8 pt-6 border-t border-white/5">
+                            <div class="mt-6 pt-4 border-t border-white/5">
                                 <PrimaryButton 
                                     @click="submitBulk" 
-                                    class="w-full btn-premium py-4 font-black uppercase tracking-widest text-sm italic"
+                                    class="!w-full !py-3 !font-black !uppercase !tracking-widest !text-[10px] italic shadow-lg shadow-indigo-600/20"
                                     :disabled="form.processing"
                                 >
-                                    {{ form.processing ? 'Saving...' : 'Save All to Database' }}
+                                    {{ form.processing ? 'MENYIMPAN...' : 'SIMPAN SEMUA KE DATABASE' }}
                                 </PrimaryButton>
                             </div>
                         </div>
@@ -352,11 +356,18 @@ const copyCrawlScript = () => {
 </template>
 
 <style scoped>
-.scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
+.glass-dark {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(12px);
 }
-.scrollbar-thumb-white\/10::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 99px;
 }
 </style>

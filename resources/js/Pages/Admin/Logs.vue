@@ -31,44 +31,52 @@ const getLogLevelClass = (log) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-3xl font-black text-white italic uppercase tracking-tighter">Diagnostik Sistem</h2>
-                <div class="flex items-center gap-4">
-                    <PrimaryButton @click="clearLogs" class="bg-red-500 hover:bg-red-600 !px-8">
+            <div class="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                    <h2 class="text-2xl sm:text-3xl font-black text-white italic uppercase tracking-tight">
+                        Diagnostik <span class="text-indigo-500">Sistem</span>
+                    </h2>
+                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-widest mt-1">Pemantauan Integritas Arsitektur</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <PrimaryButton @click="clearLogs" class="bg-red-500 hover:bg-red-600 !px-4 !py-2 !text-xs !rounded-xl shadow-lg shadow-red-500/20 active:scale-95 transition-all font-bold tracking-widest uppercase">
                         Bersihkan Log
                     </PrimaryButton>
-                    <div class="bg-indigo-500/10 px-4 py-1 rounded-full border border-indigo-500/20">
-                        <span class="text-[10px] font-black uppercase text-indigo-400 tracking-widest">Umpan Langsung</span>
+                    <div class="bg-indigo-500/10 px-3 py-1.5 rounded-xl border border-indigo-500/20">
+                        <span class="text-xs font-bold uppercase text-indigo-400 tracking-widest">Live Feed</span>
                     </div>
                 </div>
             </div>
         </template>
 
-        <div class="py-12">
+        <div class="py-6">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="glass-dark p-1 rounded-[2.5rem] border border-white/5 overflow-hidden">
-                    <div class="bg-slate-900/50 p-8 rounded-[2.3rem]">
-                        <div v-if="logs.length > 0" class="space-y-4 font-mono text-xs">
+                <div class="glass-dark p-1 rounded-2xl border border-white/10 overflow-hidden shadow-xl">
+                    <div class="bg-slate-900/50 p-4 sm:p-5 rounded-2xl">
+                        <div v-if="logs.length > 0" class="space-y-2 font-mono text-xs sm:text-sm">
                             <div v-for="(log, index) in logs" :key="index" 
-                                 class="p-4 rounded-xl border transition-all hover:bg-white/5 group"
+                                 class="p-3 rounded-xl border transition-all hover:bg-white/[0.07] group"
                                  :class="getLogLevelClass(log)"
                             >
-                                <div class="flex items-start gap-4">
-                                    <span class="text-slate-600 shrink-0 select-none group-hover:text-slate-400 transition-colors">{{ logs.length - index }}</span>
-                                    <span class="break-all leading-relaxed whitespace-pre-wrap">{{ log }}</span>
+                                <div class="flex items-start gap-3">
+                                    <span class="text-slate-700 shrink-0 select-none group-hover:text-indigo-400 transition-colors font-bold text-xs tabular-nums w-8 text-right">{{ logs.length - index }}</span>
+                                    <span class="break-all leading-relaxed whitespace-pre-wrap font-medium">{{ log }}</span>
                                 </div>
                             </div>
                         </div>
-                        <div v-else class="py-20 text-center">
-                            <div class="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">📭</div>
-                            <h3 class="text-xl font-black text-white uppercase italic tracking-widest">Cakrawala Bersih</h3>
-                            <p class="text-slate-500 mt-2">Tidak ada log sistem yang terdeteksi. Segalanya berjalan lancar.</p>
+                        <div v-else class="py-16 text-center">
+                            <div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">📭</div>
+                            <h3 class="text-xl font-black text-white uppercase italic tracking-tight">Cakrawala Bersih</h3>
+                            <p class="text-slate-500 mt-2 text-sm font-semibold uppercase tracking-widest">Tidak ada log sistem terdeteksi</p>
+                            <div class="mt-4 px-4 py-2 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 text-[10px] font-bold uppercase tracking-widest inline-block">Segalanya berjalan sesuai protokol</div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="mt-8 flex justify-center">
-                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em]">Menampilkan 100 entri terakhir • Pemeriksaan Kesehatan Otonom Aktif</p>
+                <div class="mt-4 flex justify-center">
+                    <div class="px-4 py-2 bg-white/5 rounded-full border border-white/5">
+                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Menampilkan 100 entri terbaru • Pemeriksaan Kesehatan Otonom Aktif</p>
+                    </div>
                 </div>
             </div>
         </div>

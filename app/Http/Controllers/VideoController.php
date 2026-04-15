@@ -6,6 +6,7 @@ use App\Models\Video;
 use App\Models\Setting;
 use App\Models\VideoLike;
 use App\Models\Watchlist;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -18,13 +19,14 @@ class VideoController extends Controller
         $filter = $request->query('filter', 'all');
         $search = $request->query('search');
         $tagSlug = $request->query('tag');
+        $categorySlug = $request->query('category');
         $sort = $request->query('sort', 'latest');
         $page = $request->query('page', 1);
 
-        $cacheKey = "public_videos_{$filter}_s_{$search}_t_{$tagSlug}_sort_{$sort}_page_{$page}";
+        $cacheKey = "public_videos_{$filter}_s_{$search}_t_{$tagSlug}_c_{$categorySlug}_sort_{$sort}_page_{$page}";
 
-        $videos = \Illuminate\Support\Facades\Cache::remember($cacheKey, 60, function () use ($filter, $search, $tagSlug, $sort) {
-            $query = Video::query();
+        $videos = \Illuminate\Support\Facades\Cache::remember($cacheKey, 60, function () use ($filter, $search, $tagSlug, $categorySlug, $sort) {
+            $query = Video::query()->with(['category', 'tags']);
 
             // Search by title
             if ($search) {
@@ -38,6 +40,13 @@ class VideoController extends Controller
                 });
             }
 
+            // Filter by Category
+            if ($categorySlug) {
+                $query->whereHas('category', function($q) use ($categorySlug) {
+                    $q->where('slug', $categorySlug);
+                });
+            }
+
             // Category Filters
             if ($filter === 'free') {
                 $query->where(function($q) {
@@ -45,6 +54,10 @@ class VideoController extends Controller
                 });
             } elseif ($filter === 'premium') {
                 $query->where('is_premium', true);
+            } elseif ($filter === 'saved' && Auth::check()) {
+                $query->whereHas('watchlists', function($q) {
+                    $q->where('user_id', Auth::id());
+                });
             }
 
             // Sorting Logic 2.0
@@ -89,6 +102,8 @@ class VideoController extends Controller
             'trendingVideos' => $trendingVideos,
             'currentFilter' => $filter,
             'currentSort' => $sort,
+            'currentCategory' => $categorySlug,
+            'currentTag' => $tagSlug,
         ]);
     }
 

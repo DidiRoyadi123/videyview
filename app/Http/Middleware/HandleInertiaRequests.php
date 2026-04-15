@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Http\Request;
 use App\Models\Setting;
 use App\Models\Tag;
+use App\Models\Category;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
@@ -112,11 +113,22 @@ class HandleInertiaRequests extends Middleware
                 );
                 if ($isProtected) return null;
 
-                return Cache::remember('popular_tags_global', 300, function () {
-                    return Tag::withCount('videos')
-                        ->orderByDesc('videos_count')
-                        ->take(12)
-                        ->get(['name', 'slug']);
+                return Cache::remember('popular_tags', 300, function () {
+                    return Tag::withCount('videos')->orderByDesc('videos_count')->limit(12)->get();
+                });
+            },
+            'categories' => function() {
+                $routeName = \Route::currentRouteName();
+                $isProtected = $routeName && (
+                    str_starts_with($routeName, 'admin.') || 
+                    $routeName === 'dashboard' ||
+                    str_starts_with($routeName, 'login') || 
+                    str_starts_with($routeName, 'register')
+                );
+                if ($isProtected) return null;
+
+                return Cache::remember('global_categories', 300, function () {
+                    return Category::orderBy('order')->orderBy('name')->get(['id', 'name', 'slug', 'icon']);
                 });
             },
         ];

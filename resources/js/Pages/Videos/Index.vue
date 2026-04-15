@@ -11,6 +11,8 @@ const props = defineProps({
     trendingVideos: Array,
     currentFilter: String,
     currentSort: String,
+    currentCategory: String,
+    currentTag: String,
 });
 
 const page = usePage();
@@ -96,11 +98,18 @@ const clearSearch = () => {
 };
 
 const formatViews = (views) => {
-    if (!views) return '0';
-    if (views >= 1000000) return (views / 1000000).toFixed(1) + 'M';
-    if (views >= 1000) return (views / 1000).toFixed(1) + 'k';
     return views.toString();
 };
+
+const activeCategory = computed(() => {
+    if (!props.currentCategory) return null;
+    return page.props.categories?.find(c => c.slug === props.currentCategory);
+});
+
+const activeTag = computed(() => {
+    if (!props.currentTag) return null;
+    return page.props.popular_tags?.find(t => t.slug === props.currentTag);
+});
 </script>
 
 <template>
@@ -210,10 +219,31 @@ const formatViews = (views) => {
                         :key="tag.slug"
                         :href="route('home', { tag: tag.slug })"
                         class="tag-chip"
+                        :class="{ 'active bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/20': currentTag === tag.slug }"
                     >
-                        {{ tag.name }}
+                        #{{ tag.name }}
                     </Link>
                 </div>
+            </div>
+
+            <!-- Category/Tag Filter Indicator -->
+            <div v-if="activeCategory || activeTag" class="mb-4 flex items-center justify-between p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl animate-in">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-indigo-600/10 rounded-xl flex items-center justify-center text-xl">
+                        {{ activeCategory ? (activeCategory.icon || '📁') : '#' }}
+                    </div>
+                    <div>
+                        <div class="text-[9px] font-black uppercase text-indigo-500 tracking-widest">Menampilkan</div>
+                        <div class="text-xs font-black text-[rgb(var(--text-main))] uppercase tracking-tight">
+                            {{ activeCategory ? activeCategory.name : activeTag.name }}
+                        </div>
+                    </div>
+                </div>
+                <Link :href="route('home')" class="p-2.5 bg-white/5 hover:bg-red-500/10 hover:text-red-500 rounded-xl transition-all text-[rgb(var(--text-muted))]">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </Link>
             </div>
 
             <!-- Search & Filter Bar -->
