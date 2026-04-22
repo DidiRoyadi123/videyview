@@ -696,13 +696,36 @@ class VideoController extends Controller
             $line = trim($line);
             if (empty($line)) continue;
 
-            // 1. Detect Marker: <!-- video-ID --> or <!-- ID -->
+            // 1. Detect Streamtape Link with embedded slug (Smart Logic)
+            if (preg_match('/streamtape\.[a-z]+\/e\/([a-z0-9]+)\/([^\s\n\r]+)/i', $line, $matches)) {
+                $fileCode = $matches[1];
+                $filename = $matches[2];
+                $cleanName = str_ireplace('.mp4', '', $filename);
+                
+                // Smart Match: look for a video whose slug is contained within the filename
+                // Order by length DESC to match the most specific slug first
+                $video = Video::whereRaw('? LIKE CONCAT("%", slug, "%")', [$cleanName])
+                    ->orderByRaw('LENGTH(slug) DESC')
+                    ->first();
+
+                if ($video) {
+                    $embedUrl = "https://streamtape.to/e/{$fileCode}/{$filename}";
+                    $multiHost->updateStatus($video, 'streamtape', 'success', $embedUrl);
+                    $matchedCount++;
+                }
+                
+                // Clear marker if this was a mixed format
+                $currentMarker = null;
+                continue;
+            }
+
+            // 2. Detect Marker: <!-- video-ID --> or <!-- ID -->
             if (preg_match('/<!--\s*(?:video-)?([a-z0-9-]+)\s*-->/i', $line, $matches)) {
                 $currentMarker = $matches[1];
                 continue;
             }
 
-            // 2. Detect URL (only if we have a marker waiting)
+            // 3. Detect URL (only if we have a marker waiting - Doodstream Style)
             if ($currentMarker && filter_var($line, FILTER_VALIDATE_URL)) {
                 // Find video using Case-Insensitive Smart Matching (Slug or URL)
                 $video = Video::whereRaw('LOWER(slug) LIKE ?', ["%$currentMarker%"])
@@ -710,7 +733,8 @@ class VideoController extends Controller
                     ->first();
 
                 if ($video) {
-                    $multiHost->updateStatus($video, 'doodstream', 'success', $line);
+                    $host = str_contains($line, 'streamtape') ? 'streamtape' : 'doodstream';
+                    $multiHost->updateStatus($video, $host, 'success', $line);
                     $matchedCount++;
                 }
                 
@@ -719,6 +743,7 @@ class VideoController extends Controller
             }
         }
 
-        return back()->with('success', "Berhasil mencocokkan dan menyinkronkan $matchedCount tautan Doodstream.");
+        return back()->with('success', "Berhasil mencocokkan dan menyinkronkan $matchedCount tautan penyedia hosting.");
     }
+
 }

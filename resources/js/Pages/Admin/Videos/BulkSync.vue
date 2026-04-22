@@ -47,11 +47,11 @@ const submit = () => {
                 <div class="glass-dark border border-white/10 rounded-2xl overflow-hidden shadow-xl">
                     <div class="p-5 sm:p-6">
                         <div class="mb-5">
-                            <h3 class="text-base font-black text-white mb-2 uppercase tracking-tight">Doodstream Manual Mirroring</h3>
+                            <h3 class="text-base font-black text-white mb-2 uppercase tracking-tight">Streamtape & Doodstream Smart Sync</h3>
                             <p class="text-slate-400 text-sm leading-relaxed font-medium">
-                                Tempelkan data dari Doodstream di bawah ini. Sistem akan mengekstrak ID Videy dari komentar 
+                                Tempelkan data dari host video di bawah ini. Untuk **Streamtape**, sistem akan otomatis mencocokkan melalui slug di nama file. Untuk **Doodstream**, pastikan ada penanda
                                 <code class="bg-indigo-500/20 px-2 py-0.5 rounded-lg text-indigo-300 font-bold border border-indigo-500/30 text-xs">&lt;!-- video-ID --&gt;</code> 
-                                dan menjodohkannya dengan link di bawahnya ke dalam database secara massal.
+                                di atas linknya.
                             </p>
                         </div>
 
@@ -62,10 +62,11 @@ const submit = () => {
                                     v-model="form.content"
                                     rows="14"
                                     class="relative w-full bg-black/60 border border-white/10 rounded-2xl text-indigo-300 text-sm font-mono placeholder-slate-700 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 transition-all duration-300 p-4 shadow-inner outline-none"
-                                    placeholder="<!-- video-1utm0any1-9BzlL -->&#10;https://playmogo.com/e/grjt0x291jzc&#10;&#10;<!-- video-1mqb45el1-NuCA1 -->&#10;https://playmogo.com/e/obrsyaxnb6zl"
+                                    placeholder="<!-- Contoh Streamtape -->&#10;https://streamtape.to/e/rBrBYWBqRoibZBR/video-video-slug.mp4&#10;&#10;<!-- Contoh Doodstream -->&#10;<!-- video-slug -->&#10;https://doodstream.com/e/obrsyaxnb6zl"
                                     required
                                 ></textarea>
                             </div>
+
 
                             <div v-if="form.errors.content" class="text-red-400 text-xs mt-1">
                                 {{ form.errors.content }}
