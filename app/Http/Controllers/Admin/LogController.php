@@ -41,8 +41,14 @@ class LogController extends Controller
             $logs = array_slice(array_reverse(array_filter($lines)), 0, $maxLines);
         }
 
+        $crudLogs = \App\Models\AdminCrudActivity::with('user')
+                        ->orderBy('id', 'desc')
+                        ->take(50)
+                        ->get();
+
         return Inertia::render('Admin/Logs', [
-            'logs' => $logs
+            'logs' => $logs,
+            'crudLogs' => $crudLogs
         ]);
     }
 

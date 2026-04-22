@@ -80,6 +80,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Logs
         Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
         Route::post('/logs/clear', [LogController::class, 'clear'])->name('logs.clear');
+        
+        // CRUD Activity Undo/Redo
+        Route::post('/crud-activity/{crudActivity}/undo', [\App\Http\Controllers\Admin\CrudActivityController::class, 'undo'])->name('crud-activity.undo');
+        Route::post('/crud-activity/{crudActivity}/redo', [\App\Http\Controllers\Admin\CrudActivityController::class, 'redo'])->name('crud-activity.redo');
 
         // Categories
         Route::get('/categories', [App\Http\Controllers\Admin\CategoryController::class, 'index'])->name('categories.index');

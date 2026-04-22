@@ -7,6 +7,8 @@ use Illuminate\Support\Str;
 
 class Category extends Model
 {
+    use \App\Traits\LogsCrudActivity;
+
     protected $fillable = ['name', 'slug', 'icon', 'order'];
 
     protected static function boot()

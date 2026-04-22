@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Video extends Model
 {
+    use \App\Traits\LogsCrudActivity;
+
     protected $fillable = [
         'title',
         'slug',
