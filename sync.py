@@ -18,7 +18,7 @@ def patched_create_connection(address, *args, **kwargs):
     # ISP BP MAP
     mappings = {
         'videy.co': '172.67.73.18',
-        'cdn.videy.co': '172.67.73.18',
+        'cdn.videy.co': '104.21.51.207', # Alternate Cloudflare IP
         'api.streamtape.com': '195.35.23.222',
         'streamtape.com': '195.35.23.222',
         '861520586.tapecontent.net': '51.89.194.202',
@@ -103,16 +103,19 @@ def generate_thumbnail(ffmpeg_path, video_path, thumb_path, slug):
             return False
     return True
 
-def execute_download(args, slug, target_url, save_path, filename, simple=False):
+def execute_download(args, slug, target_url, save_path, filename, simple=False, headers=None):
     """Downloads a file with a progress bar and redirect protection."""
     # simple=True disables the carriage-return progress bar for multi-threading
+    
+    if headers is None:
+        headers = {}
     
     for attempt in range(MAX_RETRIES):
         try:
             if not simple:
                 print(f"    {Colors.YELLOW}[WAIT]{Colors.END} Waiting for server response (attempt {attempt+1}/{MAX_RETRIES})...")
             
-            with requests.get(target_url, stream=True, timeout=30, verify=False, allow_redirects=False) as r:
+            with requests.get(target_url, stream=True, timeout=30, verify=False, allow_redirects=False, headers=headers) as r:
                 if r.status_code in [301, 302, 303, 307, 308]:
                     redirect_url = r.headers.get('Location', '')
                     if 'internet-positif' in redirect_url:
@@ -134,7 +137,7 @@ def execute_download(args, slug, target_url, save_path, filename, simple=False):
                                 percent = int(100 * downloaded / total_size)
                                 bar_length = 20
                                 filled = int(bar_length * downloaded // total_size)
-                                bar = '█' * filled + '-' * (bar_length - filled)
+                                bar = '#' * filled + '-' * (bar_length - filled)
                                 
                                 sys.stdout.write(f"\r  {Colors.BLUE}[PROGRESS]{Colors.END} |{bar}| {percent}% ({downloaded}/{total_size} bytes)")
                                 sys.stdout.flush()
@@ -251,9 +254,19 @@ def process_video(args, video_data, total_count):
         # Strategy 1: Local Proxy
         if args.proxy:
             try:
-                proxy_url = f"{args.url}/video-proxy?url={quote(url, safe='')}"
-                print(f"  {Colors.YELLOW}[TRY]{Colors.END} Proxy: {proxy_url[:60]}...")
-                if execute_download(args, slug, proxy_url, video_path, video_filename, simple=(args.threads > 1)):
+                # Use video_id if available to allow backend to bypass premium checks with API key
+                video_id = video_data.get('id')
+                headers = {}
+                if args.api_key:
+                    headers['X-Internal-Sync-Key'] = args.api_key
+
+                if video_id:
+                    proxy_url = f"{args.url}/video-proxy?video_id={video_id}"
+                else:
+                    proxy_url = f"{args.url}/video-proxy?url={quote(url, safe='')}"
+                
+                print(f"  {Colors.YELLOW}[TRY]{Colors.END} Proxy: {proxy_url[:70]}...")
+                if execute_download(args, slug, proxy_url, video_path, video_filename, simple=(args.threads > 1), headers=headers):
                     download_success = True
             except Exception as e:
                 print(f"  {Colors.RED}[FAIL]{Colors.END} Proxy unresponsive or failed: {str(e)[:80]}")

@@ -61,6 +61,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/videos/mirror-selected', [App\Http\Controllers\Admin\VideoController::class, 'mirrorSelected'])->name('videos.mirror-selected');
         Route::post('/videos/check-health', [App\Http\Controllers\Admin\VideoController::class, 'checkHealth'])->name('videos.check-health');
         Route::post('/videos/export-social', [App\Http\Controllers\Admin\VideoController::class, 'exportSocialLinks'])->name('videos.export-social');
+        Route::post('/videos/suggest-metadata', [App\Http\Controllers\Admin\VideoController::class, 'suggestMetadata'])->name('videos.suggest-metadata');
         
         // Manual Link Sync Support
         Route::get('/videos/bulk-sync', [App\Http\Controllers\Admin\VideoController::class, 'bulkSyncView'])->name('videos.bulk-sync');
@@ -90,6 +91,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/categories', [App\Http\Controllers\Admin\CategoryController::class, 'store'])->name('categories.store');
         Route::patch('/categories/{category}', [App\Http\Controllers\Admin\CategoryController::class, 'update'])->name('categories.update');
         Route::delete('/categories/{category}', [App\Http\Controllers\Admin\CategoryController::class, 'destroy'])->name('categories.destroy');
+
+        // Analytics
+        Route::get('/analytics', [App\Http\Controllers\Admin\AnalyticsController::class, 'index'])->name('analytics.index');
     });
 });
 

@@ -143,6 +143,39 @@ const submit = () => {
     });
 };
 
+const aiLoading = ref(false);
+const aiSuggest = async (sourceForm) => {
+    const input = sourceForm.title || sourceForm.url || '';
+    if (input.length < 3) {
+        toastError('Input too short for AI suggestion.');
+        return;
+    }
+
+    aiLoading.value = true;
+    try {
+        const response = await axios.post(route('admin.videos.suggest-metadata'), { input });
+        if (response.data.success) {
+            const data = response.data.data;
+            sourceForm.title = data.title;
+            
+            // Map category name to ID
+            if (data.category) {
+                const category = props.categories.find(c => 
+                    c.name.toLowerCase() === data.category.toLowerCase()
+                );
+                if (category) sourceForm.category_id = category.id;
+            }
+            
+            toastSuccess('AI suggested metadata applied!');
+        }
+    } catch (err) {
+        toastError(err.response?.data?.error || 'AI Suggestion failed.');
+    } finally {
+        aiLoading.value = false;
+    }
+};
+
+
 const submitBulk = () => {
     bulkForm.post(route('admin.videos.bulk'), {
         onSuccess: () => bulkForm.reset(),
@@ -511,7 +544,19 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                         <form @submit.prevent="submit" class="space-y-4">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="space-y-1.5">
-                                    <InputLabel for="title" value="Identitas Video" class="!text-[rgb(var(--text-muted))] !text-[10px] !font-bold !uppercase !tracking-widest" />
+                                    <div class="flex items-center justify-between">
+                                        <InputLabel for="title" value="Identitas Video" class="!text-[rgb(var(--text-muted))] !text-[10px] !font-bold !uppercase !tracking-widest" />
+                                        <button 
+                                            type="button"
+                                            @click="aiSuggest(form)"
+                                            :disabled="aiLoading"
+                                            class="text-[9px] font-bold text-indigo-400 uppercase hover:text-indigo-300 transition-colors flex items-center gap-1"
+                                        >
+                                            <span v-if="aiLoading" class="animate-spin">🌀</span>
+                                            <span v-else>✨</span>
+                                            AI Suggest
+                                        </button>
+                                    </div>
                                     <TextInput id="title" type="text" class="mt-1 block w-full !bg-[rgb(var(--bg-input))] !border-none !rounded-xl !py-2.5 !px-4 !text-sm !shadow-inner focus:ring-2 focus:ring-indigo-500/20" v-model="form.title" required placeholder="Enter title..." />
                                     <InputError class="mt-1 text-xs" :message="form.errors.title" />
                                 </div>
@@ -1040,7 +1085,19 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
 
                     <form @submit.prevent="updateVideo" class="space-y-6">
                         <div class="space-y-2">
-                            <InputLabel for="edit_title" value="Judul Video" class="!text-slate-500 !text-[9px] !font-black !uppercase !tracking-widest ml-2" />
+                            <div class="flex items-center justify-between px-2">
+                                <InputLabel for="edit_title" value="Judul Video" class="!text-slate-500 !text-[9px] !font-black !uppercase !tracking-widest" />
+                                <button 
+                                    type="button"
+                                    @click="aiSuggest(editForm)"
+                                    :disabled="aiLoading"
+                                    class="text-[9px] font-bold text-indigo-400 uppercase hover:text-indigo-300 transition-colors flex items-center gap-1"
+                                >
+                                    <span v-if="aiLoading" class="animate-spin">🌀</span>
+                                    <span v-else>✨</span>
+                                    AI Suggest
+                                </button>
+                            </div>
                             <TextInput id="edit_title" type="text" v-model="editForm.title" class="w-full !bg-white/5 !border-none !rounded-2xl !py-4 !px-6 !text-xs !text-white !shadow-inner focus:ring-2 focus:ring-indigo-500/20" required />
                             <InputError :message="editForm.errors.title" />
                         </div>

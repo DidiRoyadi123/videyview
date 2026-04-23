@@ -1,8 +1,8 @@
 {
   "project_info": {
     "name": "VideyView",
-    "version": "6.6.5",
-    "codename": "Smart Sync & Audit Imperium",
+    "version": "6.7",
+    "codename": "AI & Performance Imperium",
     "stack": "Laravel 10 (Backend) + Inertia.js / Vue 3 (Frontend) + Tailwind CSS + XAMPP",
     "environment": "Windows / PHP 8.2+ / MySQL",
     "main_url": "http://localhost:8000"
@@ -78,13 +78,24 @@
     ],
     "automated_distribution_pipeline": {
       "stages": [
-        "FLOW 1 (Direct Upload): Admin upload file dari pc ke aplikasi -> simpan di local aplikasi -> aplikasi upload ke videy.co (jika bisa) dan streamtape (prioritas). Thumbnail sync via sync.py.",
-        "FLOW 2 (Bulk JSON): Admin upload file json link videy.co -> simpan data link -> aplikasi download ke lokal (manual user via sync.py) -> app cek video & thumbnail lokal -> jika ada, upload ke streamtape.",
+        "FLOW 1 (Direct Upload): Admin upload file dari pc ke aplikasi -> simpan di local aplikasi -> aplikasi upload ke videy.co (jika bisa) dan streamtape (prioritas). Thumbnail sync via sync.py atau Laravel Worker.",
+        "FLOW 2 (Bulk JSON): Admin upload file json link videy.co -> simpan data link -> aplikasi download ke lokal (manual user via sync.py atau Laravel Worker) -> app cek video & thumbnail lokal -> jika ada, upload ke streamtape.",
         "ISP BYPASS 2.0: Direct backend IP mapping (Videy: 172.67.73.18, Streamtape: 195.35.23.222) via CURLOPT_RESOLVE.",
         "SMART SYNC v5.2: Automated Streamtape link parsing extracting slugs from filenames (e.g., video-video-slug.mp4) for 100% matched accuracy without manual markers.",
-        "REAL-TIME SYNC: Worker-to-Master percentage reporting (every 5%) for active transparency.",
+        "WORKER ENGINE v1.0: Laravel-native background worker (app:video-worker) with Heartbeat Monitoring and progress tracking.",
         "ASYNC REMOTE TRACKING: App\\Jobs\\CheckRemoteUploadJob dispatched to prioritize 'checkers' queue for polling api.streamtape.to status."
       ],
+      "worker_operations": {
+        "local_environment": {
+          "command": "php artisan app:video-worker --daemon",
+          "notes": "Jalankan di terminal terpisah. Pastikan XAMPP MySQL & Apache aktif."
+        },
+        "production_hosting": {
+          "method_1_supervisor": "Gunakan Supervisor untuk menjaga worker tetap hidup (recommended). Path command: /usr/local/bin/php /home/user/public_html/artisan app:video-worker --daemon",
+          "method_2_cron": "Jika tidak ada Supervisor, tambahkan ke Cron Job setiap 5 menit: * * * * * cd /path/to/project && php artisan schedule:run >> /dev/null 2>&1"
+        },
+        "monitoring": "Dashboard Admin > Robot Mandor Card (Indikator Hijau = Active)."
+      },
       "flash_audit": "Admin > Videos > 'Sync Storage' triggers high-speed O(1) directory scanning to reconcile 2,000+ files in seconds."
     },
     "security_masking_proxy_2.0": {
@@ -93,7 +104,8 @@
         "Link Masking: No raw cdn.videy.co or streamtape.com URLs in DOM/Network Tab.",
         "Proxy Engine: Uses PHP cURL with Host header spoofing and User-Agent mirroring.",
         "ISP Bypass: Integrates specific Cloudflare and Global Edge IPs to circumvent DNS/SNI hijacking.",
-        "API Obfuscation: Sensitive credentials (Streamtape API, etc.) are masked in Admin UI with toggle visibility."
+        "ANTI-INSPECT 2.0: Deep DevTools detection, debugger traps, and auto-logout/page-clearing security protocols.",
+        "API Obfuscation: Sensitive credentials (Streamtape API, Gemini Key, dsb.) di-masking di UI Admin dengan toggle visibility."
       ]
     }
   },
@@ -128,40 +140,57 @@
       "Fully integrated into the Royale Light System Logs view."
     ]
   },
+  "ai_intelligence_v1": {
+    "feature": "AI-Powered Auto-Metadata & Suggestion Engine.",
+    "engine": "Gemini 1.5 Flash (Google AI Studio).",
+    "capabilities": [
+      "SEO-friendly title generation from messy filenames.",
+      "Automatic description and tag suggestions.",
+      "Smart category classification based on content analysis."
+    ]
+  },
+  "health_analytics_v1": {
+    "feature": "Advanced Intelijen & Analitik Dashboard.",
+    "visualization": "Chart.js integrated with Vue 3.",
+    "metrics": [
+      "Mirror Status Distribution (Doughnut).",
+      "Host Success Rate (Bar).",
+      "Library Integrity Health (Bar).",
+      "Top 10 High-Traffic Content."
+    ]
+  },
   "history_of_improvements": {
-    "v6.6.5_streamtape_smart_sync": {
-      "feature": "Unified Smart Sync for Streamtape & Doodstream.",
+    "v6.7_ai_performance_imperium": {
+      "feature": "AI Metadata, Advanced Analytics, & Background Workers.",
       "updates": [
-        "Implemented Advanced Filename-to-Slug extraction algorithm.",
-        "Added Substring Matching with LENGTH(slug) priority to prevent false positives.",
-        "Integrated unified Bulk Sync UI supporting both marker-based (Doodstream) and URL-based (Streamtape) inputs."
+        "Integrated Gemini 1.5 Flash service for SEO automation.",
+        "Built comprehensive Analytics Dashboard for real-time monitoring.",
+        "Deployed Laravel Video Worker for background logistics.",
+        "Hardened security with Anti-Inspect 2.0 protocols."
       ]
     },
-    "v6.6_admin_royale_light_normalization": {
-      "feature": "Fully normalized Royale Light aesthetic across entire Admin Panel.",
+    "v6.7.1_sync_proxy_armor": {
+      "feature": "Sync Utility & Proxy Authentication Patch.",
       "updates": [
-        "Re-themed core UI components (TextInput, Checkbox, Modal, Buttons) to dark-glass Royale aesthetic.",
-        "Implemented inline Emoji Picker for Categories management.",
-        "Normalized spacing, typography, and pad layouts across all dashboard pages.",
-        "Implemented Admin CRUD Undo-Redo system."
+        "Aligned sync.py with backend proxy utilizing video_id based metadata lookup.",
+        "Implemented X-Internal-Sync-Key header authentication for secure premium content syncing.",
+        "Enhanced ISP Bypass with alternate Cloudflare Edge IPs (104.21.51.207) for cdn.videy.co.",
+        "Fixed Windows terminal encoding for sync progress bar (substituted # for utf-8 characters)."
       ]
-    },
-    "v6.5_categorization": {
-      "feature": "Dynamic categorization system for videos.",
-      "components": ["Admin CRUD", "Video Selection", "Mobile Bottom Sheet"]
     }
   },
   "important_paths": {
     "videos": "storage/app/public/videos",
     "thumbnails": "storage/app/public/thumbnails",
-    "sync_engine": "sync.py",
-    "bin": "bin/ffmpeg.exe"
+    "worker": "app/Console/Commands/VideoWorkerCommand.php",
+    "analytics": "resources/js/Pages/Admin/Analytics/Index.vue",
+    "security": "resources/js/Services/SecurityHandler.js"
   },
   "maintenance_logs_current": [
-    "v6.6.5: Streamtape Smart Sync (Slug Extraction) - DEPLOYED.",
-    "v6.6: Royale Light Normalization - COMPLETED.",
-    "v6.6: Admin CRUD Activity Logs & Undo/Redo - ACTIVE.",
-    "v6.6: Component Normalization (Profile, Settings, Dashboard) - SYNCED.",
-    "v6.5: Full-stack Categorization System - VERIFIED."
+    "v6.7: AI & Performance Imperium - DEPLOYED.",
+    "v6.7: Anti-Inspect 2.0 (Fortress Logic) - ACTIVE.",
+    "v6.7: Analytics Dashboard & Worker Heartbeat - LIVE.",
+    "v6.6.5: Streamtape Smart Sync - VERIFIED.",
+    "v6.7.1: Sync Tool & Proxy Armor Patch - DEPLOYED."
   ]
 }

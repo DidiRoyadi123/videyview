@@ -4,6 +4,7 @@ import { Head, Link } from '@inertiajs/vue3';
 
 const props = defineProps({
     stats: Object,
+    worker_active: Boolean,
 });
 
 const getStatusColor = (status) => {
@@ -151,23 +152,25 @@ const getMirrorCount = (status) => {
 
                         <!-- Autonomy Status -->
                         <div class="glass-card p-5 relative overflow-hidden group border-blue-500/10 hover:border-blue-500/40">
-                            <div class="absolute -right-6 -top-6 w-32 h-32 bg-blue-500 opacity-5 blur-3xl group-hover:opacity-15 transition-opacity duration-700"></div>
-                            <div class="relative z-10">
-                                <span class="text-2xl mb-3 block">🤖</span>
-                                <h4 class="text-base font-black text-white italic uppercase tracking-tight">Robot Mandor Otonom</h4>
-                                <p class="text-slate-400 text-xs mt-2 leading-relaxed max-w-sm">Sistem cerdas yang mengelola backup harian dan patroli kesehatan video (auto-heal) secara otonom.</p>
-                                
-                                <div class="mt-5 pt-4 border-t border-white/5 flex items-center gap-6">
-                                    <div class="flex items-center gap-2">
-                                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                        <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Medic Live</span>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                                        <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Guard Active</span>
-                                    </div>
-                                </div>
-                            </div>
+                             <div class="absolute -right-6 -top-6 w-32 h-32 bg-blue-500 opacity-5 blur-3xl group-hover:opacity-15 transition-opacity duration-700"></div>
+                             <div class="relative z-10">
+                                 <span class="text-2xl mb-3 block">🤖</span>
+                                 <h4 class="text-base font-black text-white italic uppercase tracking-tight">Robot Mandor Otonom</h4>
+                                 <p class="text-slate-400 text-xs mt-2 leading-relaxed max-w-sm">Sistem cerdas yang mengelola background worker, download, dan distribusi video secara otonom.</p>
+                                 
+                                 <div class="mt-5 pt-4 border-t border-white/5 flex items-center gap-6">
+                                     <div class="flex items-center gap-2">
+                                         <span :class="props.worker_active ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'" class="w-2 h-2 rounded-full"></span>
+                                         <span :class="props.worker_active ? 'text-emerald-400' : 'text-red-400'" class="text-[10px] font-bold uppercase tracking-widest">
+                                             Worker {{ props.worker_active ? 'Active' : 'Offline' }}
+                                         </span>
+                                     </div>
+                                     <div v-if="props.worker_active" class="flex items-center gap-2">
+                                         <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                                         <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Guard Active</span>
+                                     </div>
+                                 </div>
+                             </div>
                         </div>
                     </div>
                 </div>
@@ -217,6 +220,20 @@ const getMirrorCount = (status) => {
                     <div class="glass-card p-6 bg-gradient-to-br from-indigo-600/10 to-transparent">
                         <h3 class="text-sm font-black uppercase tracking-widest text-indigo-400 italic mb-6">Navigasi Cepat</h3>
                         <div class="space-y-4">
+                            <Link :href="route('admin.analytics.index')" class="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition group">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 group-hover:rotate-12 transition-transform">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                        </svg>
+                                    </div>
+                                    <div class="text-xs font-bold text-white">Intelijen & Analitik</div>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </Link>
+
                             <Link :href="route('admin.videos.bulk-sync')" class="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition group">
                                 <div class="flex items-center gap-3">
                                     <div class="w-8 h-8 bg-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400 group-hover:rotate-12 transition-transform">

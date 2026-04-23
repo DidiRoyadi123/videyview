@@ -12,9 +12,28 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
 use App\Models\Category;
+use App\Services\GeminiService;
 
 class VideoController extends Controller
 {
+    /**
+     * AI Suggestion Engine: Get SEO-friendly metadata from Gemini 1.5 Flash.
+     */
+    public function suggestMetadata(Request $request, GeminiService $gemini)
+    {
+        $request->validate([
+            'input' => 'required|string|min:3',
+        ]);
+
+        $result = $gemini->suggestMetadata($request->input('input'));
+
+        if (!$result['success']) {
+            return response()->json($result, 422);
+        }
+
+        return response()->json($result);
+    }
+
     public function index()
     {
         $videos = Video::with('category')

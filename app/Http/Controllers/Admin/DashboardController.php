@@ -34,8 +34,11 @@ class DashboardController extends Controller
             ];
         });
 
+        $workerActive = \Illuminate\Support\Facades\Cache::has('video_worker_heartbeat');
+
         return Inertia::render('Dashboard', [
             'stats' => $stats,
+            'worker_active' => $workerActive,
         ]);
     }
 }

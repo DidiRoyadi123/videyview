@@ -1,5 +1,8 @@
 import '../css/app.css';
 import './bootstrap';
+import { SecurityHandler } from './Services/SecurityHandler';
+
+SecurityHandler.init();
 
 import { createInertiaApp, Link, Head } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
