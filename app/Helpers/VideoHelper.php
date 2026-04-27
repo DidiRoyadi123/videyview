@@ -17,42 +17,36 @@ class VideoHelper
     public static function generateThumbnail(Video $video, string $videoFullPath): ?string
     {
         $ffmpegPath = base_path('bin' . DIRECTORY_SEPARATOR . 'ffmpeg.exe');
-        // User prefers slug for consistency
-        $thumbName = "{$video->slug}.jpg";
+        $thumbName = "{$video->slug}.webp";
         $thumbPath = "thumbnails/{$thumbName}";
         
-        // Use absolute path for FFmpeg reliability on Windows
         $absolutePath = storage_path("app/public/{$thumbPath}");
         $videoSource = storage_path("app/public/{$video->local_path}");
 
-        // Create directory if not exists
         if (!file_exists(dirname($absolutePath))) {
             mkdir(dirname($absolutePath), 0777, true);
         }
 
-        // Only generate if does not already exist
         if (file_exists($absolutePath)) {
             return $thumbPath;
         }
 
-        // Verify source video exists
         if (!file_exists($videoSource)) {
             Log::error("Cannot generate thumbnail: source video missing at {$videoSource}");
             return null;
         }
 
-        // Normalize slashes for FFmpeg on Windows
         $videoSourceNormalized = str_replace('\\', '/', $videoSource);
         $absolutePathNormalized = str_replace('\\', '/', $absolutePath);
 
-        $command = "\"{$ffmpegPath}\" -ss 00:00:02 -i \"{$videoSourceNormalized}\" -vframes 1 -q:v 2 \"{$absolutePathNormalized}\" 2>&1";
+        // Using WebP with quality 75 for optimal compression/quality ratio
+        $command = "\"{$ffmpegPath}\" -ss 00:00:02 -i \"{$videoSourceNormalized}\" -vframes 1 -c:v libwebp -lossless 0 -compression_level 6 -q:v 75 \"{$absolutePathNormalized}\" 2>&1";
         
         $output = [];
         $returnVar = 0;
         exec($command, $output, $returnVar);
 
         if ($returnVar === 0 && file_exists($absolutePath)) {
-            // Update the database record using the relative path
             $video->update([
                 'thumbnail_url' => '/storage/' . $thumbPath
             ]);

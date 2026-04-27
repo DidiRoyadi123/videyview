@@ -177,20 +177,62 @@
         "Enhanced ISP Bypass with alternate Cloudflare Edge IPs (104.21.51.207) for cdn.videy.co.",
         "Fixed Windows terminal encoding for sync progress bar (substituted # for utf-8 characters)."
       ]
+    },
+    "v6.7.2_pwa_evolution": {
+      "feature": "PWA Standalone & Offline Fallback.",
+      "updates": [
+        "Expanded manifest.json for standalone mobile installation.",
+        "Implemented sw.js service worker for asset caching.",
+        "Deployed custom glassmorphic offline.html fallback page."
+      ]
+    },
+    "v6.8_bulk_pro_uploader": {
+      "feature": "Bulk Drag-and-Drop File Uploader.",
+      "updates": [
+        "Deployed BulkUpload.vue for high-concurrency multi-file uploads.",
+        "Implemented AJAX-based progress tracking and auto-mirror chaining.",
+        "Integrated global settings for categorical and premium batch tagging."
+      ]
+    },
+    "v7.0_turbo_performance": {
+      "feature": "Turbo Performance & Next-Gen Assets.",
+      "updates": [
+        "DB Indexing: Added composite indices to videos/categories for O(1) slug and category lookups.",
+        "WebP Transition: FFmpeg generator now outputs .webp thumbnails (50% smaller size).",
+        "Gzip Compression: Enabled mod_deflate in .htaccess for text/js/css assets.",
+        "Inertia Lazy Loading: Optimized Admin/Videos@index with closure-based deferred prop loading.",
+        "Hosting Readiness: Ready for Redis acceleration."
+      ],
+      "redis_activation": {
+        "step_1": "Ensure Redis server is running on hosting environment.",
+        "step_2": "Update .env values: CACHE_STORE=redis, SESSION_DRIVER=redis.",
+        "step_3": "Set REDIS_HOST and REDIS_PASSWORD (provided by host) in .env."
+      }
+    },
+    "v7.1_unified_intelligence": {
+      "feature": "Unified Dashboard & Intelligence.",
+      "updates": [
+        "Merged Analytics into the primary Dashboard for a single command center.",
+        "Integrated Chart.js (Doughnut/Bar) directly into Dashboard.vue.",
+        "Unified Health Analysis and Top Performance Tracking in one view.",
+        "Decommissioned separate AnalyticsController and Index.vue to reduce complexity."
+      ]
     }
   },
   "important_paths": {
     "videos": "storage/app/public/videos",
     "thumbnails": "storage/app/public/thumbnails",
+    "categories": "resources/js/Pages/Admin/Categories.vue",
     "worker": "app/Console/Commands/VideoWorkerCommand.php",
-    "analytics": "resources/js/Pages/Admin/Analytics/Index.vue",
     "security": "resources/js/Services/SecurityHandler.js"
   },
   "maintenance_logs_current": [
-    "v6.7: AI & Performance Imperium - DEPLOYED.",
-    "v6.7: Anti-Inspect 2.0 (Fortress Logic) - ACTIVE.",
     "v6.7: Analytics Dashboard & Worker Heartbeat - LIVE.",
     "v6.6.5: Streamtape Smart Sync - VERIFIED.",
-    "v6.7.1: Sync Tool & Proxy Armor Patch - DEPLOYED."
+    "v6.7.1: Sync Tool & Proxy Armor Patch - DEPLOYED.",
+    "v6.7.2: PWA Evolution - DEPLOYED.",
+    "v6.8: Bulk Pro Uploader & Logistics - DEPLOYED.",
+    "v7.0: Turbo Performance & Redis Readiness Deployment - DEPLOYED.",
+    "v7.1: Unified Intelligence Dashboard - DEPLOYED."
   ]
 }

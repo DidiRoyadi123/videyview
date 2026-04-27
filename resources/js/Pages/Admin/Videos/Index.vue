@@ -496,6 +496,15 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                         </svg>
                         Ekspor Manifes
                     </button>
+                    <Link 
+                        :href="route('admin.videos.bulk-upload')"
+                        class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-1.5 group"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        Bulk Pro
+                    </Link>
                     <button 
                         @click="runHealthCheck"
                         class="px-3 py-2 bg-emerald-500/5 hover:bg-emerald-600/10 text-emerald-600 text-[10px] font-bold uppercase tracking-widest rounded-xl border border-emerald-500/20 transition-all flex items-center gap-1.5 group"

@@ -54,9 +54,35 @@ class VideoController extends Controller
             return $video;
         });
 
-        // Aggregated Host Stats (O(N) but restricted to memory since we use a collection usually, 
-        // but for 1,040 we use a raw query for speed)
-        // Use PHP aggregation for host stats to avoid MariaDB 10.4 JSON operator incompatibilities
+        return Inertia::render('Admin/Videos/Index', [
+            'videos' => $videos,
+            'total_local' => fn() => Video::where('download_status', 'completed')->count(),
+            'total_pending' => fn() => Video::whereNotIn('download_status', ['completed'])
+                ->orWhereNull('download_status')
+                ->count(),
+            'total_download_pending' => fn() => Video::where(function($q) {
+                    $q->whereNotIn('download_status', ['completed'])
+                      ->orWhereNull('download_status');
+                })->whereNotNull('url')->count(),
+            'total_active_downloads' => fn() => Video::where('download_status', 'downloading')->count(),
+            'total_active_mirrors' => fn() => Video::where('hosting_status', 'like', '%"uploading"%')
+                ->orWhere('hosting_status', 'like', '%"pending"%')
+                ->count(),
+            'total_mirrored' => fn() => Video::where('hosting_status', 'like', '%"success"%')->count(),
+            'total_mirror_pending' => fn() => Video::where('download_status', 'completed')
+                ->where(function($q) {
+                    $q->whereNull('hosting_status')
+                      ->orWhere('hosting_status', 'not like', '%"success"%');
+                })->count(),
+            'host_stats' => fn() => $this->calculateHostStats(),
+            'recent_activity' => fn() => $this->getRecentActivity(),
+            'proxy_enabled' => \App\Models\Setting::getValue('proxy_enabled', '1') === '1',
+            'categories' => Category::orderBy('order')->get(['id', 'name']),
+        ]);
+    }
+
+    private function calculateHostStats()
+    {
         $allStatuses = Video::whereNotNull('hosting_status')->pluck('hosting_status');
         $hostStats = [
             'streamtape' => 0,
@@ -72,38 +98,16 @@ class VideoController extends Controller
                 }
             }
         }
+        return $hostStats;
+    }
 
-        $recentActivity = Video::whereNotNull('mirror_links')
+    private function getRecentActivity()
+    {
+        return Video::whereNotNull('mirror_links')
             ->where('mirror_links', '!=', '[]')
             ->latest('updated_at')
             ->take(5)
             ->get(['id', 'title', 'slug', 'hosting_status', 'updated_at']);
-
-        return Inertia::render('Admin/Videos/Index', [
-            'videos' => $videos,
-            'total_local' => Video::where('download_status', 'completed')->count(),
-            'total_pending' => Video::whereNotIn('download_status', ['completed'])
-                ->orWhereNull('download_status')
-                ->count(),
-            'total_download_pending' => Video::where(function($q) {
-                    $q->whereNotIn('download_status', ['completed'])
-                      ->orWhereNull('download_status');
-                })->whereNotNull('url')->count(),
-            'total_active_downloads' => Video::where('download_status', 'downloading')->count(),
-            'total_active_mirrors' => Video::where('hosting_status', 'like', '%"uploading"%')
-                ->orWhere('hosting_status', 'like', '%"pending"%')
-                ->count(),
-            'total_mirrored' => Video::where('hosting_status', 'like', '%"success"%')->count(),
-            'total_mirror_pending' => Video::where('download_status', 'completed')
-                ->where(function($q) {
-                    $q->whereNull('hosting_status')
-                      ->orWhere('hosting_status', 'not like', '%"success"%');
-                })->count(),
-            'host_stats' => $hostStats,
-            'recent_activity' => $recentActivity,
-            'proxy_enabled' => \App\Models\Setting::getValue('proxy_enabled', '1') === '1',
-            'categories' => Category::orderBy('order')->get(['id', 'name']),
-        ]);
     }
 
     public function extractor()
@@ -765,4 +769,64 @@ class VideoController extends Controller
         return back()->with('success', "Berhasil mencocokkan dan menyinkronkan $matchedCount tautan penyedia hosting.");
     }
 
+    /**
+     * Display the Bulk File Upload page.
+     */
+    public function bulkUploadView()
+    {
+        return Inertia::render('Admin/Videos/BulkUpload', [
+            'categories' => Category::orderBy('order')->get(['id', 'name']),
+        ]);
+    }
+
+    /**
+     * Handle individual AJAX file upload for bulk process.
+     */
+    public function storeAjax(Request $request)
+    {
+        $request->validate([
+            'video_file' => 'required|file|mimes:mp4,mov,avi,wmv|max:1048576', // Increased to 1GB for bulk pro
+            'is_premium' => 'boolean',
+            'category_id' => 'nullable|exists:categories,id',
+            'auto_mirror' => 'boolean',
+        ]);
+
+        try {
+            $file = $request->file('video_file');
+            $originalName = $file->getClientOriginalName();
+            $title = pathinfo($originalName, PATHINFO_FILENAME);
+            $slug = Str::slug($title) . '-' . Str::random(5);
+            $filename = $slug . '.' . $file->getClientOriginalExtension();
+
+            $path = $file->storeAs('videos', $filename, 'public');
+            
+            $video = Video::create([
+                'title' => $title,
+                'slug' => $slug,
+                'url' => asset('storage/' . $path),
+                'local_path' => $path,
+                'download_status' => 'completed',
+                'is_premium' => $request->is_premium ?? true,
+                'category_id' => $request->category_id,
+            ]);
+
+            if ($request->auto_mirror) {
+                DistributeToHostJob::dispatch($video, 'streamtape');
+                DistributeToHostJob::dispatch($video, 'videy');
+            }
+
+            $this->applyAutoFreeLogic($video);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Video uploaded and registered successfully.',
+                'video' => $video
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Upload failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

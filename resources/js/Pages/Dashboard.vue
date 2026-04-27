@@ -1,11 +1,99 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+} from 'chart.js';
+import { Doughnut, Bar } from 'vue-chartjs';
+
+ChartJS.register(Title, Tooltip, Legend, ArcElement, BarElement, CategoryScale, LinearScale);
 
 const props = defineProps({
     stats: Object,
     worker_active: Boolean,
 });
+
+// Chart.js Options
+const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            position: 'bottom',
+            labels: {
+                color: '#94a3b8',
+                font: { size: 10, weight: 'bold' },
+                usePointStyle: true,
+                padding: 20
+            }
+        },
+        tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+            titleColor: '#fff',
+            bodyColor: '#cbd5e1',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
+            padding: 12,
+            boxPadding: 6,
+            cornerRadius: 12
+        }
+    },
+    scales: {
+        y: {
+            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: { color: '#94a3b8', font: { size: 10 } }
+        },
+        x: {
+            grid: { display: false },
+            ticks: { color: '#94a3b8', font: { size: 10 } }
+        }
+    }
+};
+
+const donutOptions = {
+    ...chartOptions,
+    scales: null
+};
+
+// Mirror Distribution Data
+const mirrorChartData = {
+    labels: ['Berhasil', 'Menunggu', 'Gagal'],
+    datasets: [{
+        data: [props.stats.mirrorStats.success, props.stats.mirrorStats.pending, props.stats.mirrorStats.failed],
+        backgroundColor: [
+            'rgba(16, 185, 129, 0.8)', // Success
+            'rgba(59, 130, 246, 0.8)', // Pending
+            'rgba(239, 68, 68, 0.8)',  // Failed
+        ],
+        hoverBackgroundColor: ['#10b981', '#3b82f6', '#ef4444'],
+        borderWidth: 0,
+        borderRadius: 10,
+        spacing: 5
+    }]
+};
+
+// Health Library Data
+const healthChartData = {
+    labels: ['Sehat (ALIVE)', 'Bermasalah', 'Unknown'],
+    datasets: [{
+        label: 'Integritas Library',
+        data: [props.stats.healthSummary.healthy, props.stats.healthSummary.down, props.stats.healthSummary.unknown || 0],
+        backgroundColor: [
+            'rgba(16, 185, 129, 0.8)',
+            'rgba(245, 158, 11, 0.8)', // Amber
+            'rgba(148, 163, 184, 0.5)'  // Slate
+        ],
+        borderRadius: 12,
+        maxBarThickness: 40
+    }]
+};
 
 const getStatusColor = (status) => {
     if (!status) return 'text-slate-500';
@@ -13,11 +101,6 @@ const getStatusColor = (status) => {
     if (s.includes('success')) return 'text-emerald-400';
     if (s.includes('uploading') || s.includes('pending')) return 'text-amber-400';
     return 'text-red-400';
-};
-
-const getMirrorCount = (status) => {
-    if (!status) return 0;
-    return Object.values(status).filter(val => val === 'success').length;
 };
 </script>
 
@@ -31,7 +114,7 @@ const getMirrorCount = (status) => {
                     <h2 class="text-2xl sm:text-3xl font-black text-white italic uppercase tracking-tight">
                         Dasbor <span class="text-indigo-500">Admin</span>
                     </h2>
-                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-widest mt-1">Kontrol Logistik VideyView</p>
+                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-widest mt-1">Komando & Intelijen Terpadu</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <div class="bg-indigo-500/10 px-4 py-2 rounded-xl border border-indigo-500/20 flex items-center gap-2">
@@ -119,68 +202,41 @@ const getMirrorCount = (status) => {
                     </div>
                 </div>
 
-                <!-- Project Control Center -->
-                <div class="mt-6">
-                    <div class="flex items-center gap-4 mb-5">
-                        <div class="h-px flex-1 bg-white/5"></div>
-                        <h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 px-3 text-center">Pusat Kontrol Proyek</h3>
-                        <div class="h-px flex-1 bg-white/5"></div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Backup System -->
-                        <div class="glass-card p-5 relative overflow-hidden group border-emerald-500/10 hover:border-emerald-500/40">
-                            <div class="absolute -right-6 -top-6 w-32 h-32 bg-emerald-500 opacity-5 blur-3xl group-hover:opacity-15 transition-opacity duration-700"></div>
-                            <div class="relative z-10">
-                                <span class="text-2xl mb-3 block">🛡️</span>
-                                <h4 class="text-base font-black text-white italic uppercase tracking-tight">Penguncian Benteng</h4>
-                                <p class="text-slate-400 text-xs mt-2 leading-relaxed max-w-sm">Mengamankan seluruh struktur database VideyView ke .sql secara instan.</p>
-                                
-                                <div class="mt-5 pt-4 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3">
-                                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pemicu Manual Aktif</div>
-                                    <Link 
-                                        :href="route('admin.project.backup')" 
-                                        method="post" 
-                                        as="button" 
-                                        class="w-full sm:w-auto px-5 py-2 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white border border-emerald-500/20 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-300 active:scale-95"
-                                    >
-                                        Bangun Benteng
-                                    </Link>
-                                </div>
+                <!-- NEW Intelijen & Charts Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+                    <!-- Mirror Distribution -->
+                    <div class="glass-card p-6 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-black text-white uppercase tracking-widest italic">Distribusi Sinkronisasi</h3>
+                            <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Live Analysis</div>
+                        </div>
+                        <div class="h-64 relative">
+                            <Doughnut :data="mirrorChartData" :options="donutOptions" />
+                            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                <span class="text-xl font-black text-white italic">{{ stats.mirrorStats.success }}</span>
+                                <span class="text-[8px] text-slate-500 font-bold uppercase tracking-widest">Mirror OK</span>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Autonomy Status -->
-                        <div class="glass-card p-5 relative overflow-hidden group border-blue-500/10 hover:border-blue-500/40">
-                             <div class="absolute -right-6 -top-6 w-32 h-32 bg-blue-500 opacity-5 blur-3xl group-hover:opacity-15 transition-opacity duration-700"></div>
-                             <div class="relative z-10">
-                                 <span class="text-2xl mb-3 block">🤖</span>
-                                 <h4 class="text-base font-black text-white italic uppercase tracking-tight">Robot Mandor Otonom</h4>
-                                 <p class="text-slate-400 text-xs mt-2 leading-relaxed max-w-sm">Sistem cerdas yang mengelola background worker, download, dan distribusi video secara otonom.</p>
-                                 
-                                 <div class="mt-5 pt-4 border-t border-white/5 flex items-center gap-6">
-                                     <div class="flex items-center gap-2">
-                                         <span :class="props.worker_active ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'" class="w-2 h-2 rounded-full"></span>
-                                         <span :class="props.worker_active ? 'text-emerald-400' : 'text-red-400'" class="text-[10px] font-bold uppercase tracking-widest">
-                                             Worker {{ props.worker_active ? 'Active' : 'Offline' }}
-                                         </span>
-                                     </div>
-                                     <div v-if="props.worker_active" class="flex items-center gap-2">
-                                         <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                                         <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Guard Active</span>
-                                     </div>
-                                 </div>
-                             </div>
+                    <!-- Health Analysis -->
+                    <div class="glass-card p-6 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-black text-white uppercase tracking-widest italic">Integritas Library</h3>
+                            <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Automated Audit</div>
+                        </div>
+                        <div class="h-64">
+                            <Bar :data="healthChartData" :options="chartOptions" />
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
                     <!-- Recent Activity Table -->
                     <div class="lg:col-span-2 glass-card overflow-hidden">
                         <div class="px-5 py-4 border-b border-white/5 flex items-center justify-between">
-                            <h3 class="text-sm font-black uppercase tracking-widest text-white">Aktivitas Logistik Terkini</h3>
-                            <Link :href="route('admin.videos.index')" class="text-indigo-400 text-[10px] font-bold uppercase hover:text-white transition-colors tracking-widest">Lihat Semua</Link>
+                            <h3 class="text-sm font-black uppercase tracking-widest text-white">Logistik Terkini</h3>
+                            <Link :href="route('admin.videos.index')" class="text-indigo-400 text-[10px] font-bold uppercase hover:text-white transition-colors tracking-widest">Detail Brankas</Link>
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left">
@@ -208,7 +264,7 @@ const getMirrorCount = (status) => {
                                             </div>
                                         </td>
                                         <td class="px-4 py-3 text-[10px] text-slate-500 text-right group-hover:text-slate-300 transition-colors whitespace-nowrap">
-                                            {{ new Date(video.created_at).toLocaleString() }}
+                                            {{ new Date(video.created_at).toLocaleTimeString() }}
                                         </td>
                                     </tr>
                                 </tbody>
@@ -216,74 +272,50 @@ const getMirrorCount = (status) => {
                         </div>
                     </div>
 
-                    <!-- Quick Command Panel -->
-                    <div class="glass-card p-6 bg-gradient-to-br from-indigo-600/10 to-transparent">
-                        <h3 class="text-sm font-black uppercase tracking-widest text-indigo-400 italic mb-6">Navigasi Cepat</h3>
-                        <div class="space-y-4">
-                            <Link :href="route('admin.analytics.index')" class="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition group">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 group-hover:rotate-12 transition-transform">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                        </svg>
-                                    </div>
-                                    <div class="text-xs font-bold text-white">Intelijen & Analitik</div>
+                    <!-- Top 10 Content -->
+                    <div class="glass-card flex flex-col p-6 h-full">
+                         <h3 class="text-xs font-black text-white uppercase tracking-widest italic mb-4">Top 10 Konten</h3>
+                         <div class="space-y-3 overflow-y-auto max-h-[350px] no-scrollbar flex-1 pr-2">
+                            <div v-for="(video, index) in stats.topVideos" :key="video.id" class="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5 group hover:bg-white/10 transition-colors">
+                                <div class="w-6 h-6 rounded bg-indigo-600/20 flex items-center justify-center font-black text-indigo-400 italic text-[10px]">
+                                    {{ index + 1 }}
                                 </div>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </Link>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="text-[10px] font-black text-white uppercase truncate">{{ video.title }}</h4>
+                                    <p class="text-[8px] text-slate-500 font-bold uppercase tracking-widest">{{ video.views.toLocaleString() }} Views</p>
+                                </div>
+                            </div>
+                         </div>
+                    </div>
+                </div>
 
-                            <Link :href="route('admin.videos.bulk-sync')" class="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition group">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 bg-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400 group-hover:rotate-12 transition-transform">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                        </svg>
-                                    </div>
-                                    <div class="text-xs font-bold text-white">Sinkronisasi Massal Manual</div>
-                                </div>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </Link>
-
-                            <Link :href="route('admin.videos.extractor')" class="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition group">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 bg-purple-500/20 rounded-xl flex items-center justify-center text-purple-400 group-hover:rotate-12 transition-transform">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                                        </svg>
-                                    </div>
-                                    <div class="text-xs font-bold text-white">Ekstraktor Tautan Massal</div>
-                                </div>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </Link>
-
-                            <Link :href="route('admin.settings.index')" class="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition group">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 bg-slate-500/20 rounded-xl flex items-center justify-center text-slate-400 group-hover:rotate-12 transition-transform">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        </svg>
-                                    </div>
-                                    <div class="text-xs font-bold text-white">Pengaturan Platform</div>
-                                </div>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                </svg>
+                <!-- Action Center -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    <!-- Backup -->
+                    <div class="glass-card p-5 border-emerald-500/10 hover:border-emerald-500/40">
+                        <div class="flex items-center justify-between gap-4">
+                            <div>
+                                <h4 class="text-sm font-black text-white uppercase tracking-tight italic">Benteng Database</h4>
+                                <p class="text-slate-400 text-[10px] mt-1 font-bold uppercase tracking-widest">Amankan Struktur .SQL</p>
+                            </div>
+                            <Link :href="route('admin.project.backup')" method="post" as="button" class="px-5 py-2 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">
+                                Backup
                             </Link>
                         </div>
-                        
-                        <div class="mt-8 p-4 bg-indigo-500 rounded-2xl shadow-xl shadow-indigo-500/20 relative overflow-hidden group cursor-pointer">
-                            <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-                            <div class="relative z-10">
-                                <div class="text-[10px] font-black uppercase text-indigo-100 tracking-widest mb-1 italic">Jangkauan Total Tontonan</div>
-                                <div class="text-2xl font-black text-white tracking-tighter italic">KOMANDO UTAMA</div>
-                                <p class="text-indigo-200 text-[10px] mt-2 leading-tight">Hub Premium VideyView berjalan pada kapasitas penuh.</p>
+                    </div>
+
+                    <!-- PWA / Worker -->
+                    <div class="glass-card p-5 border-blue-500/10 hover:border-blue-500/40">
+                         <div class="flex items-center justify-between gap-4">
+                            <div>
+                                <h4 class="text-sm font-black text-white uppercase tracking-tight italic">Status Robot Mandor</h4>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span :class="props.worker_active ? 'bg-emerald-500' : 'bg-red-500'" class="w-1.5 h-1.5 rounded-full"></span>
+                                    <span class="text-slate-400 text-[9px] font-black uppercase tracking-widest">{{ props.worker_active ? 'OTONOM AKTIF' : 'OFFLINE' }}</span>
+                                </div>
+                            </div>
+                            <div class="bg-blue-500/10 px-3 py-1.5 rounded-lg border border-blue-500/20 text-blue-400 text-[9px] font-black uppercase tracking-widest">
+                                Guard v7
                             </div>
                         </div>
                     </div>
@@ -298,18 +330,15 @@ const getMirrorCount = (status) => {
     background: rgba(30, 41, 59, 0.4);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 1rem;
+    border-radius: 1.5rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
 .glass-card:hover {
     background: rgba(30, 41, 59, 0.6);
     border-color: rgba(99, 102, 241, 0.2);
     box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.4);
     transform: translateY(-2px);
 }
-
-.btn-premium {
-    @apply bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl border border-indigo-400/20 shadow-lg shadow-indigo-500/20 transition-all duration-300 transform active:scale-95 uppercase tracking-widest text-[10px] py-4;
-}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>

@@ -14,6 +14,7 @@ $total = 0;
 
 \App\Models\Video::where('download_status', 'completed')->chunk(100, function($videos) use (&$mismatches, &$fixed, &$total, $videosPath) {
     foreach ($videos as $v) {
+        /** @var \App\Models\Video $v */
         $total++;
         $cleanPath = ltrim(str_replace('\\', '/', $v->local_path ?? ''), '/');
         $path = $cleanPath ? storage_path('app/public/' . $cleanPath) : null;

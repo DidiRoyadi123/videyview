@@ -1,12 +1,21 @@
 {
-  "name": "VideyView Admin Fortress",
+  "name": "VideyView Imperium",
   "short_name": "VideyView",
-  "description": "Autonomous Media Empire & Admin Dashboard",
+  "description": "Autonomous Media Empire & AI Performance Dashboard",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0f172a",
   "theme_color": "#6366f1",
+  "scope": "/",
+  "categories": ["entertainment", "video"],
   "icons": [
+    {
+      "src": "/pwa-icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "/pwa-icon.png",
       "sizes": "512x512",

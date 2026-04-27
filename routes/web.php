@@ -63,9 +63,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/videos/export-social', [App\Http\Controllers\Admin\VideoController::class, 'exportSocialLinks'])->name('videos.export-social');
         Route::post('/videos/suggest-metadata', [App\Http\Controllers\Admin\VideoController::class, 'suggestMetadata'])->name('videos.suggest-metadata');
         
-        // Manual Link Sync Support
         Route::get('/videos/bulk-sync', [App\Http\Controllers\Admin\VideoController::class, 'bulkSyncView'])->name('videos.bulk-sync');
         Route::post('/videos/bulk-sync', [App\Http\Controllers\Admin\VideoController::class, 'bulkSyncLinks'])->name('videos.bulk-sync.store');
+        Route::get('/videos/bulk-upload', [App\Http\Controllers\Admin\VideoController::class, 'bulkUploadView'])->name('videos.bulk-upload');
+        Route::post('/videos/upload-ajax', [App\Http\Controllers\Admin\VideoController::class, 'storeAjax'])->name('videos.upload-ajax');
 
 
         Route::get('/users', [App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
@@ -91,9 +92,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/categories', [App\Http\Controllers\Admin\CategoryController::class, 'store'])->name('categories.store');
         Route::patch('/categories/{category}', [App\Http\Controllers\Admin\CategoryController::class, 'update'])->name('categories.update');
         Route::delete('/categories/{category}', [App\Http\Controllers\Admin\CategoryController::class, 'destroy'])->name('categories.destroy');
-
-        // Analytics
-        Route::get('/analytics', [App\Http\Controllers\Admin\AnalyticsController::class, 'index'])->name('analytics.index');
     });
 });
 
