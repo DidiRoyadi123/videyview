@@ -7,19 +7,36 @@ use Illuminate\Support\Facades\Log;
 class IspBypassClient
 {
     /**
-     * Real IP mappings for domains blocked by Internet Positif.
-     * Resolved via public DNS (8.8.8.8).
+     * Real IP pools for domains blocked by ISP.
+     * v3.0: Supports multiple IPs for failover and rotation.
      */
     protected static array $mappings = [
-        'videy.co'           => '172.67.73.18',
-        'cdn.videy.co'       => '172.67.73.18',
-        'api.streamtape.com' => '195.35.23.222',
-        'streamtape.com'     => '195.35.23.222',
-        'streamtape.to'      => '195.35.23.222',
-        // Content/Upload Clusters
-        '861520586.tapecontent.net' => '51.89.194.202',
-        '861113552.tapecontent.net' => '51.83.140.208',
+        'videy.co'           => ['172.67.73.18', '104.21.51.207', '104.21.31.25', '172.67.68.221'],
+        'cdn.videy.co'       => ['172.67.73.18', '104.21.51.207', '104.21.13.19', '172.67.202.164'],
+        'api.streamtape.com' => ['195.35.23.222', '195.35.23.223', '195.35.23.235'],
+        'streamtape.com'     => ['195.35.23.222', '195.35.23.223'],
+        'streamtape.to'      => ['195.35.23.222', '195.35.23.223'],
+        // Content Clusters
+        '861520586.tapecontent.net' => ['51.89.194.202'],
+        '861113552.tapecontent.net' => ['51.83.140.208'],
     ];
+
+    /**
+     * Get a rotated IP for the given host.
+     */
+    protected static function getIpForHost(string $host): ?string
+    {
+        $ips = self::$mappings[$host] ?? null;
+        if (!$ips) return null;
+
+        if (is_array($ips)) {
+            // Smart Rotation: Use a simple random selection for now
+            // Future v3.1: Add health-check based selection
+            return $ips[array_rand($ips)];
+        }
+
+        return $ips;
+    }
 
     /**
      * Perform a cURL request with DNS bypass (ISP Bypass).
@@ -27,7 +44,7 @@ class IspBypassClient
     public static function request(string $method, string $url, array $params = [], array $headers = [], bool $isJson = true)
     {
         $host = parse_url($url, PHP_URL_HOST);
-        $ip = self::$mappings[$host] ?? null;
+        $ip = self::getIpForHost($host);
 
         $ch = curl_init();
         
@@ -97,7 +114,7 @@ class IspBypassClient
     public static function upload(string $url, string $filePath, array $fields = [], array $headers = [])
     {
         $host = parse_url($url, PHP_URL_HOST);
-        $ip = self::$mappings[$host] ?? null;
+        $ip = self::getIpForHost($host);
 
         $ch = curl_init();
         

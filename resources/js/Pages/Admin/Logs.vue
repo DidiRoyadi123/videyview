@@ -129,79 +129,94 @@ const getEventClass = (event) => {
                     </div>
                 </div>
 
-                <!-- Tab 2: CRUD Activity Logs (Undo/Redo) -->
-                <div v-show="activeTab === 'crud'" class="glass-dark rounded-2xl border border-white/10 overflow-hidden shadow-xl animate-in fade-in duration-300">
-                    <div class="px-5 py-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
-                        <h3 class="font-black text-white uppercase tracking-widest text-sm">Log Modifikasi Data</h3>
-                        <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 py-1 bg-white/5 rounded-full border border-white/5">50 Riwayat Terakhir</div>
+                <!-- Tab 2: CRUD Activity Logs (Timeline Mode) -->
+                <div v-show="activeTab === 'crud'" class="space-y-8 animate-in slide-in-from-bottom-8 duration-700">
+                    <div class="px-5 py-4 flex items-center justify-between">
+                         <div>
+                            <h3 class="font-black text-white uppercase tracking-[0.2em] text-sm italic">Opsi Lini Masa Aktivitas</h3>
+                            <p class="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">Audit Jejak Digital & Integritas Konfigurasi</p>
+                         </div>
+                         <div class="text-[10px] font-black text-indigo-400 uppercase tracking-widest px-4 py-2 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 shadow-lg">Live Audit Active</div>
                     </div>
-                    
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left bg-slate-900/30">
-                            <thead class="text-[10px] font-black uppercase text-slate-500 tracking-widest border-b border-white/10 bg-white/[0.02]">
-                                <tr>
-                                    <th class="py-4 px-5">Waktu & User</th>
-                                    <th class="py-4 px-5">Model</th>
-                                    <th class="py-4 px-5">Aksi</th>
-                                    <th class="py-4 px-5">Status</th>
-                                    <th class="py-4 px-5 text-right w-40">Tindakan Waktu</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-white/5 text-sm font-medium">
-                                <tr v-for="log in crudLogs" :key="log.id" class="group hover:bg-white/[0.04] transition-all duration-200">
-                                    <td class="py-4 px-5">
-                                        <div class="text-white font-bold">{{ new Date(log.created_at).toLocaleString('id-ID') }}</div>
-                                        <div class="text-xs text-slate-500 mt-1 uppercase tracking-widest font-bold">{{ log.user?.name || 'Sistem Otonom' }}</div>
-                                    </td>
-                                    
-                                    <td class="py-4 px-5">
-                                        <div class="font-mono text-xs text-indigo-300 break-all bg-indigo-500/10 px-2 py-1 rounded inline-block">{{ log.subject_type }}</div>
-                                        <div class="text-[10px] text-slate-500 mt-1 font-bold tracking-widest uppercase">ID Kunci: <span class="text-white">{{ log.subject_id }}</span></div>
-                                    </td>
-                                    
-                                    <td class="py-4 px-5">
-                                        <span class="px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full border" :class="getEventClass(log.event)">
-                                            {{ formatEvent(log.event) }}
-                                        </span>
-                                    </td>
 
-                                    <td class="py-4 px-5">
-                                        <div v-if="log.undone_at" class="inline-flex items-center gap-1.5 px-3 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded-lg text-xs font-bold">
-                                            <span>↩</span> Dibatalkan (Undo)
-                                        </div>
-                                        <div v-else class="text-xs text-slate-500 font-bold tracking-wide">Aktif</div>
-                                    </td>
-                                    
-                                    <td class="py-4 px-5 text-right">
-                                        <div class="flex justify-end gap-2">
-                                            <button 
-                                                v-if="!log.undone_at"
-                                                @click="undoAction(log.id)"
-                                                class="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest border border-red-500/20 rounded-lg transition-all active:scale-95"
-                                            >
-                                                UNDO
-                                            </button>
-                                            
-                                            <button 
-                                                v-if="log.undone_at"
-                                                @click="redoAction(log.id)"
-                                                class="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20 rounded-lg transition-all active:scale-95"
-                                            >
-                                                REDO
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                
-                                <tr v-if="!crudLogs.length">
-                                    <td colspan="5" class="py-16 text-center">
-                                        <div class="text-3xl mb-3">🕒</div>
-                                        <h3 class="text-lg font-black text-white uppercase italic tracking-tight">Tidak Ada Riwayat</h3>
-                                        <p class="text-slate-500 mt-1 text-[10px] font-semibold uppercase tracking-widest">Aktivitas CRUD akan muncul di sini</p>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="relative pl-12 sm:pl-20 pb-12">
+                        <!-- Vertical Line -->
+                        <div class="absolute left-[23px] sm:left-[39px] top-0 bottom-0 w-px bg-gradient-to-b from-indigo-500/50 via-slate-800 to-transparent"></div>
+
+                        <div v-if="crudLogs.length > 0" class="space-y-12">
+                            <div v-for="log in crudLogs" :key="log.id" class="relative group">
+                                <!-- Dot Anchor -->
+                                <div :class="[
+                                    'absolute -left-[54px] sm:-left-[86px] w-12 h-12 rounded-2xl border-4 border-slate-950 flex items-center justify-center text-xs shadow-2xl transition-all duration-500 group-hover:scale-125 z-10',
+                                    log.event === 'deleted' ? 'bg-red-500 text-white shadow-red-500/20' : 
+                                    (log.event === 'created' ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-blue-500 text-white shadow-blue-500/20')
+                                ]">
+                                    <span v-if="log.event === 'deleted'">🗑</span>
+                                    <span v-else-if="log.event === 'created'">➕</span>
+                                    <span v-else>📝</span>
+                                </div>
+
+                                <!-- Content Card -->
+                                <div class="glass-dark p-6 sm:p-8 rounded-[32px] border border-white/5 shadow-royale group-hover:border-indigo-500/30 transition-all duration-500 relative overflow-hidden">
+                                     <div v-if="log.undone_at" class="absolute inset-0 bg-yellow-500/5 backdrop-blur-[2px] z-0"></div>
+                                     
+                                     <div class="relative z-10">
+                                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                                             <div class="flex items-center gap-4">
+                                                 <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-sm shadow-inner group-hover:bg-indigo-500/10 transition-colors">👤</div>
+                                                 <div>
+                                                     <div class="text-[rgb(var(--text-main))] font-black uppercase tracking-tight text-sm">{{ log.user?.name || 'Sistem Otonom' }}</div>
+                                                     <div class="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">{{ new Date(log.created_at).toLocaleString('id-ID') }}</div>
+                                                 </div>
+                                             </div>
+                                             
+                                             <div class="flex gap-2">
+                                                 <span class="px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border shadow-lg" :class="getEventClass(log.event)">
+                                                     {{ formatEvent(log.event) }}
+                                                 </span>
+                                                 <span v-if="log.undone_at" class="px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 shadow-lg">🏛 UNDONE</span>
+                                             </div>
+                                         </div>
+
+                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+                                             <div class="space-y-4">
+                                                 <div class="flex flex-col gap-1.5">
+                                                     <span class="text-[9px] text-slate-500 font-black uppercase tracking-[0.3em]">Target Arsitektur</span>
+                                                     <div class="font-mono text-xs text-indigo-300 break-all bg-indigo-500/5 px-4 py-2.5 rounded-2xl border border-indigo-500/10 w-fit">{{ log.subject_type }}</div>
+                                                 </div>
+                                                 <div class="flex items-center gap-2">
+                                                     <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest bg-white/5 px-3 py-1 rounded-lg">ID : {{ log.subject_id }}</span>
+                                                 </div>
+                                             </div>
+
+                                             <div class="flex justify-end gap-3">
+                                                 <button 
+                                                     v-if="!log.undone_at"
+                                                     @click="undoAction(log.id)"
+                                                     class="h-12 px-8 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white text-[10px] font-black uppercase tracking-[0.2em] border border-red-500/20 rounded-2xl transition-all active:scale-95 shadow-lg hover:shadow-red-500/30"
+                                                 >
+                                                     BATALKAN (UNDO)
+                                                 </button>
+                                                 
+                                                 <button 
+                                                     v-if="log.undone_at"
+                                                     @click="redoAction(log.id)"
+                                                     class="h-12 px-8 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white text-[10px] font-black uppercase tracking-[0.2em] border border-emerald-500/20 rounded-2xl transition-all active:scale-95 shadow-lg hover:shadow-emerald-500/30"
+                                                 >
+                                                     PULIHKAN (REDO)
+                                                 </button>
+                                             </div>
+                                         </div>
+                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-else class="py-24 text-center glass-dark rounded-[40px] border border-white/5">
+                            <div class="text-6xl mb-6 grayscale opacity-30">⏳</div>
+                            <h3 class="text-2xl font-black text-white uppercase italic tracking-tighter">Lini Masa Hampa</h3>
+                            <p class="text-slate-500 mt-2 text-sm font-semibold uppercase tracking-[0.3em]">Menunggu Jejak Digital Baru...</p>
+                        </div>
                     </div>
                 </div>
 

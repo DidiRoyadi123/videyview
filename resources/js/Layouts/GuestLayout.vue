@@ -1,5 +1,6 @@
 <script setup>
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import AdDefenseShield from '@/Components/Security/AdDefenseShield.vue';
 import { Link } from '@inertiajs/vue3';
 </script>
 
@@ -23,5 +24,6 @@ import { Link } from '@inertiajs/vue3';
                 </Link>
             </div>
         </div>
+        <AdDefenseShield />
     </div>
 </template>

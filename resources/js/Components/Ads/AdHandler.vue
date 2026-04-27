@@ -50,16 +50,31 @@ const cleanUp = () => {
         adContainer.value.innerHTML = '';
     }
 
-    // 3. Aggressive: Remove any stray Adsterra/Popunder elements from head/body
-    // This handles scripts that might have spawned children before being removed
-    if (props.type === 'popunder' || props.type === 'social_bar') {
-        const strayScripts = document.querySelectorAll('script[src*="system-v4.js"], script[src*="recollectsideway.com"]');
-        strayScripts.forEach(s => s.remove());
+    // 3. Extremely Aggressive Purgatory: Clean ALL possibly ad-related artifacts
+    const selectors = [
+        'script[src*="system-v4.js"]', 
+        'script[src*="recollectsideway.com"]',
+        'script[src*="exdynsrv.com"]',
+        'script[src*="adsterra.com"]',
+        'iframe[src*="exdynsrv.com"]',
+        'iframe[id*="aswgv"]',
+        'div[id*="container-"]', // Adsterra containers often use this
+        'ins.adsbygoogle',
+        '.ad-handler-wrapper:empty'
+    ];
+    
+    selectors.forEach(selector => {
+        try {
+            document.querySelectorAll(selector).forEach(el => {
+                // Only remove if it's outside our active container or if we are cleaning up everything
+                if (!adContainer.value?.contains(el)) {
+                    el.remove();
+                }
+            });
+        } catch (e) {}
+    });
 
-        const strayIframes = document.querySelectorAll('iframe[src*="exdynsrv.com"], iframe[id*="aswgv"]');
-        strayIframes.forEach(f => f.remove());
-    }
-
+    // 4. Reset injected elements tracker
     injectedElements.value = [];
 };
 
@@ -176,11 +191,13 @@ const injectStandard = () => {
 };
 
 const handleInjection = () => {
-    // SECURITY: Never inject ads for Admin or Premium users
-    const page = usePage();
+    // SECURITY: Never inject ads for Admin or Premium users or restricted routes
     const user = page.props.auth.user;
     
-    if (user?.is_admin || user?.has_active_subscription || isRestrictedRoute()) {
+    // Hard check: If the backend says NO ADS (props.ads is null), we must clean up and STOP.
+    const adsEnabled = !!page.props.ads;
+
+    if (!adsEnabled || user?.is_admin || user?.has_active_subscription || isRestrictedRoute()) {
         cleanUp();
         return;
     }

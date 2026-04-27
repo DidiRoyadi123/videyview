@@ -2,7 +2,7 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import MainLayout from '@/Layouts/MainLayout.vue';
 import DynamicWatermark from '@/Components/Video/DynamicWatermark.vue';
-import { ref, computed, inject, onUnmounted, watch } from 'vue';
+import { ref, computed, inject, onUnmounted, watch, onMounted } from 'vue';
 import AdHandler from '@/Components/Ads/AdHandler.vue';
 import axios from 'axios';
 
@@ -165,6 +165,40 @@ const handleVideoPlaying = () => {
     }
 };
 
+const activeAccentColor = ref('79, 70, 229'); // Default indigo RGB
+
+const extractDominantColor = (imgUrl) => {
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.src = imgUrl;
+    img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 1;
+        canvas.height = 1;
+        ctx.drawImage(img, 0, 0, 1, 1);
+        const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+        
+        // Ensure color isn't too dark or too light for UI consistency
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        if (luminance < 0.2 || luminance > 0.8) {
+            activeAccentColor.value = '79, 70, 229'; // Stick to indigo
+        } else {
+            activeAccentColor.value = `${r}, ${g}, ${b}`;
+        }
+    };
+};
+
+onMounted(() => {
+    if (props.video.thumbnail_url) {
+        extractDominantColor(props.video.thumbnail_url);
+    }
+});
+
+watch(() => props.video.thumbnail_url, (newUrl) => {
+    if (newUrl) extractDominantColor(newUrl);
+});
+
 onUnmounted(() => {
     if (waitingTimeout) clearTimeout(waitingTimeout);
 });
@@ -229,10 +263,10 @@ const formatDate = (dateStr) => {
     <Head :title="video.title" />
 
     <MainLayout>
-        <div class="relative min-h-screen flex flex-col pt-2 sm:pt-8 md:pt-16 pb-8 sm:pb-24">
-            <!-- Background Glow -->
+        <div class="relative min-h-screen flex flex-col pt-2 sm:pt-8 md:pt-16 pb-8 sm:pb-24 transition-colors duration-1000" :style="{ '--accent-color': activeAccentColor }">
+            <!-- Dynamic Background Glow -->
             <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[120%] h-[120%] bg-indigo-600/5 rounded-full blur-[150px]"></div>
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[140%] h-[140%] opacity-20 rounded-full blur-[150px] transition-all duration-1000" :style="{ background: `radial-gradient(circle, rgba(${activeAccentColor}, 0.15) 0%, transparent 70%)` }"></div>
             </div>
 
             <div class="relative z-10 max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 w-full">
@@ -273,8 +307,9 @@ const formatDate = (dateStr) => {
                                         <!-- Social Royale -->
                                         <div class="flex items-center gap-2 p-1.5 bg-[rgb(var(--bg-input))] rounded-[24px] border border-[rgb(var(--border-main))] shadow-inner">
                                             <button @click="toggleLike('like')" 
-                                                :class="user_like_status === 'like' ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/30' : 'text-[rgb(var(--text-muted))] hover:text-indigo-500 hover:bg-white/10'"
+                                                :class="user_like_status === 'like' ? 'bg-[rgb(var(--accent-color))] text-white shadow-xl shadow-indigo-500/30' : 'text-[rgb(var(--text-muted))] hover:text-indigo-500 hover:bg-white/10'"
                                                 class="flex items-center gap-2 px-5 py-2 rounded-[18px] transition-all active:scale-90"
+                                                :style="user_like_status === 'like' ? { backgroundColor: `rgb(${activeAccentColor})` } : {}"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" :class="user_like_status === 'like' ? 'fill-current' : 'fill-none'" class="h-4 w-4" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 10h4.708c.93 0 1.74.616 1.97 1.517l.732 2.86a3.605 3.605 0 01-3.605 4.623H14v1.5a2.5 2.5 0 01-5 0V11a2.5 2.5 0 012.5-2.5h1.5V10zM4 11h3v7H4v-7z" /></svg>
                                                 <span class="text-[10px] font-black uppercase tracking-widest">{{ video.likes_count ?? '' }}</span>
@@ -308,7 +343,8 @@ const formatDate = (dateStr) => {
                                                 v-for="source in allSources"
                                                 :key="source.id"
                                                 @click="activeSource = source.id"
-                                                :class="activeSource === source.id ? 'bg-indigo-600 text-white shadow-lg' : 'text-[rgb(var(--text-muted))] hover:text-indigo-400'"
+                                                :style="activeSource === source.id ? { backgroundColor: `rgb(${activeAccentColor})` } : {}"
+                                                :class="activeSource === source.id ? 'text-white shadow-lg' : 'text-[rgb(var(--text-muted))] hover:text-indigo-400'"
                                                 class="px-4 py-2 rounded-[16px] text-[9px] font-black uppercase tracking-widest transition-all"
                                             >
                                                 {{ source.name }}

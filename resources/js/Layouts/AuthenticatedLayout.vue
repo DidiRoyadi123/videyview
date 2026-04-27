@@ -9,6 +9,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { useAutoLogout } from '@/Composables/useAutoLogout';
 import { useToast } from '@/Composables/useToast';
 import ToastList from '@/Components/Toasts/ToastList.vue';
+import AdDefenseShield from '@/Components/Security/AdDefenseShield.vue';
 import { watch } from 'vue';
 
 const { success: toastSuccess, error: toastError, info: toastInfo } = useToast();
@@ -266,6 +267,8 @@ useAutoLogout(30); // 30 minutes idle timeout
         <main>
             <slot />
         </main>
+
+        <AdDefenseShield />
 
         <ToastList />
     </div>

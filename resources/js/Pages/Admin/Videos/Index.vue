@@ -395,7 +395,7 @@ onMounted(() => {
 
 onUnmounted(() => {
     if (observer) observer.disconnect();
-    if (pollInterval) clearInterval(pollInterval);
+    if (pollInterval) clearTimeout(pollInterval);
 });
 
 const observeVideo = (el, id) => {
@@ -408,8 +408,9 @@ const observeVideo = (el, id) => {
 let pollInterval = null;
 
 const startPollingProgress = () => {
-    if (pollInterval) clearInterval(pollInterval);
-    pollInterval = setInterval(async () => {
+    if (pollInterval) clearTimeout(pollInterval);
+    
+    const poll = async () => {
         const activeIds = props.videos.data
             .filter(v => 
                 v.download_status === 'downloading' || 
@@ -417,6 +418,11 @@ const startPollingProgress = () => {
             )
             .map(v => v.id);
             
+        if (activeIds.length === 0 && !props.total_active_downloads && !props.total_active_mirrors) {
+            pollInterval = setTimeout(poll, 30000); // Check less frequently if nothing active
+            return;
+        }
+
         try {
             const response = await axios.get(route('admin.videos.progress'), {
                 params: { ids: activeIds }
@@ -468,8 +474,13 @@ const startPollingProgress = () => {
             }
         } catch (error) {
             console.error("Failed to fetch progress", error);
+        } finally {
+            // Schedule next poll only after current is finished
+            pollInterval = setTimeout(poll, 10000);
         }
-    }, 3000);
+    };
+
+    poll();
 };
 
 onMounted(() => startPollingProgress());
