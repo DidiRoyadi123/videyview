@@ -17,4 +17,25 @@ export default defineConfig({
             },
         }),
     ],
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: (id) => {
+                    if (id.includes('node_modules')) {
+                        if (id.includes('chart.js') || id.includes('vue-chartjs')) {
+                            return 'vendor-charts';
+                        }
+                        if (id.includes('axios') || id.includes('lodash')) {
+                            return 'vendor-utils';
+                        }
+                        if (id.includes('@inertiajs') || id.includes('vue')) {
+                            return 'vendor-core';
+                        }
+                        return 'vendor';
+                    }
+                },
+            },
+        },
+        chunkSizeWarningLimit: 1000,
+    },
 });

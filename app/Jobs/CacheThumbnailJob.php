@@ -34,11 +34,19 @@ class CacheThumbnailJob implements ShouldQueue
     public function handle(): void
     {
         try {
+            $path1 = "thumbnails/video-{$this->video->slug}.jpg";
+            $path2 = "thumbnails/{$this->video->slug}.jpg";
+            
+            if (Storage::disk('public')->exists($path1) || Storage::disk('public')->exists($path2)) {
+                Log::info("MultiHost: Thumbnail already exists locally for {$this->video->slug}. Skipping download.");
+                return;
+            }
+
             $response = Http::get($this->url);
             
             if ($response->successful()) {
-                $path = "thumbnails/video-{$this->video->slug}.jpg";
-                Storage::disk('public')->put($path, $response->body());
+                Storage::disk('public')->put($path2, $response->body());
+                $this->video->update(['thumbnail_url' => '/storage/' . $path2]);
                 
                 Log::info("MultiHost: Cached thumbnail for video {$this->video->slug} from {$this->url}");
             }

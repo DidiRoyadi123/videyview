@@ -196,6 +196,12 @@ useAutoLogout(30); // 30 minutes idle timeout
                                     <span class="font-semibold">Sinkronisasi</span>
                                 </div>
                             </ResponsiveNavLink>
+                            <ResponsiveNavLink :href="route('admin.videos.mirrors')" :active="route().current('admin.videos.mirrors')" @click="showingSidebar = false" class="!py-2.5 !px-3 !rounded-lg !text-sm">
+                                <div class="flex items-center gap-3">
+                                    <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <span class="font-semibold">Pantauan Mirror</span>
+                                </div>
+                            </ResponsiveNavLink>
                             <ResponsiveNavLink :href="route('admin.videos.extractor')" :active="route().current('admin.videos.extractor')" @click="showingSidebar = false" class="!py-2.5 !px-3 !rounded-lg !text-sm">
                                 <div class="flex items-center gap-3">
                                     <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>

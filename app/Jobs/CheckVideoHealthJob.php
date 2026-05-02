@@ -52,11 +52,27 @@ class CheckVideoHealthJob implements ShouldQueue
         // 2. Check Videy (Main URL)
         if ($this->video->url && (str_contains($this->video->url, 'videy.co') || str_contains($this->video->url, 'cdn.videy.co'))) {
             try {
-                $response = Http::timeout(5)->head($this->video->url);
-                if ($response->successful()) {
-                    $report['videy'] = ['status' => 'healthy', 'message' => 'CDN link alive (200 OK)'];
+                // Use ISP Bypass to check health since Videy is often blocked by local ISPs
+                $client = new \App\Helpers\IspBypassClient();
+                $host = parse_url($this->video->url, PHP_URL_HOST);
+                $ip = \App\Helpers\IspBypassClient::getIpForHost($host) ?? '104.21.51.207';
+                
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $this->video->url);
+                curl_setopt($ch, CURLOPT_NOBODY, true); // HEAD request
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+                curl_setopt($ch, CURLOPT_RESOLVE, ["$host:443:$ip", "$host:80:$ip"]);
+                
+                curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+
+                if ($httpCode >= 200 && $httpCode < 400) {
+                    $report['videy'] = ['status' => 'healthy', 'message' => "CDN link alive ($httpCode OK) via ISP Bypass"];
                 } else {
-                    $report['videy'] = ['status' => 'dead', 'message' => 'CDN link returned ' . $response->status()];
+                    $report['videy'] = ['status' => 'dead', 'message' => "CDN link returned $httpCode via ISP Bypass"];
                 }
             } catch (\Exception $e) {
                 $report['videy'] = ['status' => 'error', 'message' => 'Connection failed: ' . $e->getMessage()];

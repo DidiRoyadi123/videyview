@@ -109,7 +109,12 @@ class VideoController extends Controller
 
     public function show(Video $video)
     {
-        $video->increment('views');
+        // Performance: Increment views only once per session per video
+        $sessionKey = 'viewed_video_' . $video->id;
+        if (!session()->has($sessionKey)) {
+            $video->increment('views');
+            session()->put($sessionKey, true);
+        }
         
         $localUrl = null;
         $cdnUrl = $video->url;
@@ -133,11 +138,13 @@ class VideoController extends Controller
 
         $is_allowed = ! $video->is_premium || (Auth::check() && Auth::user()->hasActiveSubscription());
 
-        $recommended = Video::where('id', '!=', $video->id)
-            ->orderByRaw('thumbnail_url IS NULL ASC')
-            ->inRandomOrder()
-            ->take(5)
-            ->get(['id', 'slug', 'title', 'url', 'thumbnail_url', 'is_premium', 'is_free_to_all', 'views']);
+        $recommended = \Illuminate\Support\Facades\Cache::remember("recommended_for_{$video->id}", 300, function() use ($video) {
+            return Video::where('id', '!=', $video->id)
+                ->orderByRaw('thumbnail_url IS NULL ASC')
+                ->inRandomOrder()
+                ->take(5)
+                ->get(['id', 'slug', 'title', 'url', 'thumbnail_url', 'is_premium', 'is_free_to_all', 'views']);
+        });
 
         $recommended->transform(function ($v) {
             if (($v->download_status === 'completed' && $v->local_path) || ($v->thumbnail_url && !str_contains($v->thumbnail_url, 'video-thumbnail'))) {
@@ -170,7 +177,9 @@ class VideoController extends Controller
             'has_local' => ($video->download_status === 'completed' && $video->local_path),
             'has_videy' => str_contains($video->url ?? '', 'videy.co'),
             'available_mirrors' => collect($video->mirror_links)->keys(),
-            'premium_count' => Video::where('is_premium', true)->count(),
+            'premium_count' => \Illuminate\Support\Facades\Cache::remember('premium_video_count', 600, function() {
+                return Video::where('is_premium', true)->count();
+            }),
         ]);
     }
 
@@ -239,7 +248,9 @@ class VideoController extends Controller
             // Premium check (Bypass for internal sync tool)
             if ($video->is_premium) {
                 $apiKey = $request->header('X-Internal-Sync-Key') ?? $request->query('key');
-                if ($apiKey !== env('INTERNAL_SYNC_KEY', 'default_sync_key_123')) {
+                $configuredKey = config('app.internal_sync_key');
+                
+                if (!$configuredKey || $apiKey !== $configuredKey) {
                     $user = Auth::user();
                     if (!$user || (!$user->is_admin && !$user->hasActiveSubscription())) {
                         abort(403, 'Premium subscription required for this proxy stream.');
@@ -267,16 +278,8 @@ class VideoController extends Controller
             abort(403, 'Proxying this domain is not allowed.');
         }
 
-        // ISP BYPASS IPs
-        $ipMap = [
-            'videy.co' => '172.67.73.18',
-            'cdn.videy.co' => '104.21.51.207', // Alternate Cloudflare IP
-            'streamtape.com' => '195.35.23.222',
-            'streamtape.to' => '195.35.23.222',
-            'api.streamtape.com' => '195.35.23.222'
-        ];
-
-        $ip = $ipMap[$host] ?? '104.21.51.207';
+        // ISP BYPASS (Centralized via IspBypassClient)
+        $ip = \App\Helpers\IspBypassClient::getIpForHost($host) ?? '104.21.51.207';
         
         if (ob_get_level()) ob_end_clean();
 

@@ -92,7 +92,7 @@ class VideoController extends Controller
 
     private function getRecentActivity()
     {
-        return Video::whereNotNull('mirror_links')->where('mirror_links', '!=', '[]')->latest('updated_at')->take(5)->get(['id', 'title', 'slug', 'hosting_status', 'updated_at']);
+        return Video::whereNotNull('hosting_status')->latest('updated_at')->take(5)->get(['id', 'title', 'slug', 'hosting_status', 'updated_at']);
     }
 
     public function extractor()
@@ -249,6 +249,13 @@ class VideoController extends Controller
         return redirect()->back()->with('success', 'Tugas pemeriksaan kesehatan dikirim.');
     }
 
+    public function retryFailed()
+    {
+        $videos = Video::where('download_status', 'failed')->get();
+        $videos->each(fn($v) => $this->worker->queueDownload($v));
+        return back()->with('success', $videos->count() . ' unduhan gagal telah dimasukkan kembali ke antrean.');
+    }
+
     public function bulkSyncView()
     {
         return Inertia::render('Admin/Videos/BulkSync');
@@ -257,8 +264,52 @@ class VideoController extends Controller
     public function bulkSyncLinks(Request $request)
     {
         $request->validate(['content' => 'required|string']);
-        $matchedCount = $this->distribution->bulkSyncLinks($request->input('content'));
+        $matchedCount = $this->distribution->bulkSyncLinks($request->input('content'), auth()->id());
         return back()->with('success', "Berhasil menyinkronkan $matchedCount tautan.");
+    }
+
+    public function bulkSyncChunk(Request $request)
+    {
+        $content = $request->input('content', '');
+        $matchedCount = $this->distribution->bulkSyncLinks($content);
+        return response()->json(['matched' => $matchedCount, 'success' => true]);
+    }
+
+    public function bulkSyncRealtimeProgress()
+    {
+        $progress = Cache::get('bulksync_progress_' . auth()->id(), ['current' => 0, 'total' => 0]);
+        return response()->json($progress);
+    }
+
+    public function mirrorsView(Request $request)
+    {
+        // Simple filter by status if requested
+        $query = Video::select('id', 'title', 'slug', 'hosting_status', 'mirror_links', 'updated_at');
+
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('hosting_status', 'like', '%"'.$request->status.'"%');
+        } else {
+            // By default, let's only show videos that have some hosting_status
+            $query->whereNotNull('hosting_status');
+        }
+
+        $videos = $query->latest('updated_at')->paginate(50)->withQueryString();
+
+        return Inertia::render('Admin/Videos/Mirrors', [
+            'videos' => $videos,
+            'filters' => ['status' => $request->status ?? 'all'],
+            'stats' => [
+                'total_success' => Video::where('hosting_status', 'like', '%"success"%')->count(),
+                'total_failed' => Video::where('hosting_status', 'like', '%"failed"%')->count(),
+                'total_pending' => Video::where('hosting_status', 'like', '%"pending"%')->count(),
+                'host_counts' => [
+                    'local' => Video::where('download_status', 'completed')->count(),
+                    'videy' => Video::where('hosting_status', 'like', '%"videy":"success"%')->count(),
+                    'streamtape' => Video::where('hosting_status', 'like', '%"streamtape":"success"%')->count(),
+                    'doodstream' => Video::where('hosting_status', 'like', '%"doodstream":"success"%')->count(),
+                ]
+            ]
+        ]);
     }
 
     public function bulkUploadView()

@@ -310,6 +310,15 @@ const runHealthCheck = () => {
     }
 };
 
+const retryFailedDownloads = () => {
+    if (confirm('Ulangi semua unduhan yang gagal?')) {
+        router.post(route('admin.videos.retry-failed'), {}, {
+            preserveScroll: true,
+            onSuccess: () => toastSuccess('Antrean unduhan ulang dimulai.')
+        });
+    }
+};
+
 const distributeVideo = (id, host = null) => {
     router.post(route('admin.videos.distribute', id), { host }, {
         preserveScroll: true,
@@ -524,6 +533,15 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04c0 4.833 1.807 9.242 4.798 12.584a11.11 11.11 0 0011.64 0c2.991-3.342 4.798-7.751 4.798-12.584z" />
                         </svg>
                         Audit Kesehatan
+                    </button>
+                    <button 
+                        @click="retryFailedDownloads"
+                        class="px-3 py-2 bg-red-500/5 hover:bg-red-600/10 text-red-600 text-[10px] font-bold uppercase tracking-widest rounded-xl border border-red-500/20 transition-all flex items-center gap-1.5 group"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 group-hover:rotate-12 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Ulangi Gagal
                     </button>
                     <div class="bg-indigo-500/10 px-3 py-1.5 rounded-full border border-indigo-500/20">
                         <span class="text-[10px] font-bold uppercase text-indigo-600 tracking-widest">{{ videos.total }} Terdaftar</span>
@@ -742,16 +760,15 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                             </div>
                         </div>
 
-                        <!-- Overall Progress Bar -->
                         <div class="space-y-2 relative z-10">
-                            <div class="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-500">
+                            <div class="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">
                                 <span>Total Keberhasilan Distribusi</span>
-                                <span class="text-white">{{ Math.round((mirroredTotal / (localReady + downloadPendingTotal || 1)) * 100) }}%</span>
+                                <span class="text-white">{{ Math.round(Math.min((mirroredTotal / (localReady || 1)) * 100, 100)) }}%</span>
                             </div>
                             <div class="w-full h-2 bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
                                 <div 
                                     class="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(79,70,229,0.4)]" 
-                                    :style="{ width: ((mirroredTotal / (localReady + downloadPendingTotal || 1)) * 100 || 0) + '%' }"
+                                    :style="{ width: Math.min((mirroredTotal / (localReady || 1)) * 100, 100) + '%' }"
                                 ></div>
                             </div>
                         </div>
@@ -776,13 +793,30 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <div class="text-[10px] font-black text-white truncate uppercase tracking-tighter">{{ video.title }}</div>
-                                    <div class="flex gap-1.5 mt-1">
-                                        <div v-for="(status, host) in video.hosting_status" :key="host">
-                                            <div v-if="status === 'success'" class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]" :title="host"></div>
+                                    <div class="flex flex-wrap gap-1.5 mt-1.5">
+                                        <div v-for="(status, host) in video.hosting_status" :key="host" 
+                                             class="flex items-center gap-1.5 px-1.5 py-0.5 rounded border"
+                                             :class="{
+                                                'bg-emerald-500/10 border-emerald-500/20 text-emerald-400': status === 'success',
+                                                'bg-amber-500/10 border-amber-500/20 text-amber-400': status === 'pending' || status === 'uploading',
+                                                'bg-red-500/10 border-red-500/20 text-red-400': status && status.startsWith('failed'),
+                                             }"
+                                        >
+                                            <div class="w-1.5 h-1.5 rounded-full"
+                                                 :class="{
+                                                    'bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]': status === 'success',
+                                                    'bg-amber-500 animate-pulse shadow-[0_0_5px_rgba(245,158,11,0.5)]': status === 'pending' || status === 'uploading',
+                                                    'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]': status && status.startsWith('failed')
+                                                 }"
+                                            ></div>
+                                            <span class="text-[8px] font-black uppercase tracking-widest">{{ host === 'streamtape' ? 'TAP' : (host === 'doodstream' ? 'DDS' : host.substring(0,3)) }}</span>
+                                            <span v-if="status === 'uploading' && uploadProgress[video.id]" class="text-[8px] font-bold">{{ uploadProgress[video.id] }}%</span>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="text-[8px] font-black text-slate-600 uppercase">{{ new Date(video.updated_at).toLocaleTimeString() }}</div>
+                                <div class="text-[8px] font-black text-slate-500 uppercase flex flex-col items-end gap-1">
+                                    <span>{{ new Date(video.updated_at).toLocaleTimeString() }}</span>
+                                </div>
                             </div>
                             <div v-if="recent_activity.length === 0" class="text-center py-6 text-[10px] font-black text-slate-600 uppercase tracking-widest">
                                 Menunggu sinkronisasi...
@@ -915,23 +949,36 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                                          <span v-else class="bg-slate-800 text-slate-400 text-[10px] px-2.5 py-1 rounded-full border border-white/5 font-bold uppercase tracking-wider">Standard</span>
                                      </td>
                                     <td class="py-3 px-4">
-                                        <div class="flex items-center gap-2">
-                                             <div class="group/host relative">
-                                                 <div 
-                                                     :class="getMirrorStatusClass(video.hosting_status?.['streamtape'])"
-                                                     class="w-3.5 h-3.5 rounded-full border border-white/20 transition-all cursor-help"
-                                                     @click="distributeVideo(video.id, 'streamtape')"
-                                                 ></div>
-                                                 <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-black text-[10px] font-bold uppercase text-white rounded-lg opacity-0 group-hover/host:opacity-100 transition whitespace-nowrap z-20 pointer-events-none shadow-lg">
-                                                     Tape: {{ getMirrorStatusLabel(video.hosting_status?.['streamtape']) }}
-                                                 </div>
-                                             </div>
-                                             <div>
-                                                 <span v-if="video.hosting_status?.['streamtape'] === 'success'" class="text-[10px] font-bold text-emerald-400 uppercase">OK</span>
-                                                 <span v-else-if="video.hosting_status?.['streamtape'] === 'uploading'" class="text-[10px] font-bold text-blue-400 uppercase animate-pulse">Sync...</span>
-                                                 <span v-else-if="video.hosting_status?.['streamtape']?.startsWith('failed')" class="text-[10px] font-bold text-red-400 uppercase">Gagal</span>
-                                                 <span v-else class="text-[10px] font-bold text-slate-600 uppercase">-</span>
-                                             </div>
+                                        <div class="flex flex-col gap-1.5">
+                                            <!-- Streamtape Dot -->
+                                            <div class="flex items-center gap-2">
+                                                <div class="group/host relative">
+                                                    <div 
+                                                        :class="getMirrorStatusClass(video.hosting_status?.['streamtape'])"
+                                                        class="w-3 h-3 rounded-full border border-white/20 transition-all cursor-help"
+                                                        @click="distributeVideo(video.id, 'streamtape')"
+                                                    ></div>
+                                                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-black text-[10px] font-bold uppercase text-white rounded-lg opacity-0 group-hover/host:opacity-100 transition whitespace-nowrap z-20 pointer-events-none shadow-lg">
+                                                        Tape: {{ getMirrorStatusLabel(video.hosting_status?.['streamtape']) }}
+                                                    </div>
+                                                </div>
+                                                <span class="text-[9px] font-bold uppercase text-slate-500 tracking-tighter">TAP</span>
+                                            </div>
+                                            
+                                            <!-- Doodstream Dot -->
+                                            <div class="flex items-center gap-2">
+                                                <div class="group/host relative">
+                                                    <div 
+                                                        :class="getMirrorStatusClass(video.hosting_status?.['doodstream'])"
+                                                        class="w-3 h-3 rounded-full border border-white/20 transition-all cursor-help border-dashed"
+                                                        @click="distributeVideo(video.id, 'doodstream')"
+                                                    ></div>
+                                                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-black text-[10px] font-black uppercase text-white rounded-lg opacity-0 group-hover/host:opacity-100 transition whitespace-nowrap z-20 pointer-events-none shadow-lg">
+                                                        Dood: {{ getMirrorStatusLabel(video.hosting_status?.['doodstream']) }}
+                                                    </div>
+                                                </div>
+                                                <span class="text-[9px] font-bold uppercase text-slate-500 tracking-tighter">DDS</span>
+                                            </div>
                                         </div>
                                     </td>
                                     <td class="py-3 px-4 hidden lg:table-cell">

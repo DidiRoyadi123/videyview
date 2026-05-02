@@ -265,7 +265,20 @@ onUnmounted(() => {
             <div v-if="$slots.header" class="max-w-7xl mx-auto px-3 sm:px-6 mb-6 lg:mb-12">
                 <slot name="header" />
             </div>
-            <slot />
+            
+            <Transition
+                mode="out-in"
+                enter-active-class="transition duration-300 ease-out"
+                enter-from-class="opacity-0 translate-y-4"
+                enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition duration-200 ease-in"
+                leave-from-class="opacity-100 translate-y-0"
+                leave-to-class="opacity-0 -translate-y-4"
+            >
+                <div :key="page.url">
+                    <slot />
+                </div>
+            </Transition>
         </main>
         
         <footer class="mt-auto py-8 lg:py-12 border-t border-[rgb(var(--border-main))] bg-[rgb(var(--bg-main))] transition-colors duration-500 hidden lg:block">

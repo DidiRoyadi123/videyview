@@ -1,9 +1,9 @@
 {
   "project_info": {
     "name": "VideyView",
-    "version": "8.0",
-    "codename": "Quantum Efficiency",
-    "stack": "Laravel 10 (Backend) + Inertia.js / Vue 3 (Frontend) + Tailwind CSS + XAMPP",
+    "version": "8.1.2",
+    "codename": "Aether Pulse",
+    "stack": "Laravel 12 (Backend) + Inertia.js / Vue 3 (Frontend) + Tailwind CSS + XAMPP",
     "environment": "Windows / PHP 8.2+ / MySQL",
     "main_url": "http://localhost:8000"
   },
@@ -78,8 +78,8 @@
     ],
     "automated_distribution_pipeline": {
       "stages": [
-        "FLOW 1 (Direct Upload): Admin upload file dari pc ke aplikasi -> simpan di local aplikasi -> aplikasi upload ke videy.co (jika bisa) dan streamtape (prioritas). Thumbnail sync via sync.py atau Laravel Worker.",
-        "FLOW 2 (Bulk JSON): Admin upload file json link videy.co -> simpan data link -> aplikasi download ke lokal (manual user via sync.py atau Laravel Worker) -> app cek video & thumbnail lokal -> jika ada, upload ke streamtape.",
+        "FLOW 1 (Direct Upload): Admin upload file dari pc ke aplikasi -> simpan di local aplikasi -> aplikasi upload ke videy.co (jika bisa) dan streamtape (prioritas). Thumbnail sync via tools/sync.py atau Laravel Worker.",
+        "FLOW 2 (Bulk JSON): Admin upload file json link videy.co -> simpan data link -> aplikasi download ke lokal (manual user via tools/sync.py atau Laravel Worker) -> app cek video & thumbnail lokal -> jika ada, upload ke streamtape.",
         "ISP BYPASS 2.0: Direct backend IP mapping (Videy: 172.67.73.18, Streamtape: 195.35.23.222) via CURLOPT_RESOLVE.",
         "SMART SYNC v5.2: Automated Streamtape link parsing extracting slugs from filenames (e.g., video-video-slug.mp4) for 100% matched accuracy without manual markers.",
         "WORKER ENGINE v1.0: Laravel-native background worker (app:video-worker) with Heartbeat Monitoring and progress tracking.",
@@ -172,7 +172,7 @@
     "v6.7.1_sync_proxy_armor": {
       "feature": "Sync Utility & Proxy Authentication Patch.",
       "updates": [
-        "Aligned sync.py with backend proxy utilizing video_id based metadata lookup.",
+        "Aligned tools/sync.py with backend proxy utilizing video_id based metadata lookup.",
         "Implemented X-Internal-Sync-Key header authentication for secure premium content syncing.",
         "Enhanced ISP Bypass with alternate Cloudflare Edge IPs (104.21.51.207) for cdn.videy.co.",
         "Fixed Windows terminal encoding for sync progress bar (substituted # for utf-8 characters)."
@@ -245,7 +245,8 @@
     "categories": "resources/js/Pages/Admin/Categories.vue",
     "worker": "app/Console/Commands/VideoWorkerCommand.php",
     "security": "resources/js/Services/SecurityHandler.js",
-    "services": "app/Services/"
+    "services": "app/Services/",
+    "tools": "tools/"
   },
   "maintenance_logs_current": [
     "v6.7: Analytics Dashboard & Worker Heartbeat - LIVE.",
@@ -258,6 +259,15 @@
     "v7.2: Backend Service Modularization - DEPLOYED.",
     "v8.0: Quantum Efficiency (IP Rotation, API v1, Adaptive UI) - DEPLOYED.",
     "v8.0.1: Ad-Defense Shield (Zero-Leak Patch) - DEPLOYED.",
-    "v8.0.2: Performance Engine Tuning (Cache & Smart Polling) - DEPLOYED."
+    "v8.0.2: Performance Engine Tuning (Cache & Smart Polling) - DEPLOYED.",
+    "v8.0.3: Doodstream BulkSync Duplication Check Patch - DEPLOYED.",
+    "v8.0.4: Bulk Sync Real-Time Progress Indicator - DEPLOYED.",
+    "v8.0.5: Database Mirrors Monitoring Page - DEPLOYED.",
+    "v8.0.6: Sync Dashboard UI Overhaul (Real-time Progress & Badges) - DEPLOYED.",
+    "v8.0.7: Doodstream Local Upload Capability & Native Thumbnail Fetching - DEPLOYED.",
+    "v8.0.8: Streamtape Pending Queue Utility Script - DEPLOYED.",
+    "v8.1: Aether Pulse (Composite Indexing, Smart Chunking, ISP Bypass 4.0, Royale Skeleton) - DEPLOYED.",
+    "v8.1.1: Security & Performance Hardening (Point 2, 3, 4, 6 Audit Fixes) - DEPLOYED.",
+    "v8.1.2: Root Cleanup & API Protection (Point 5 Audit v1, Point 2-3 Audit v2 Fixes) - DEPLOYED."
   ]
 }

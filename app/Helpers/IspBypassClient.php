@@ -11,11 +11,17 @@ class IspBypassClient
      * v3.0: Supports multiple IPs for failover and rotation.
      */
     protected static array $mappings = [
-        'videy.co'           => ['172.67.73.18', '104.21.51.207', '104.21.31.25', '172.67.68.221'],
-        'cdn.videy.co'       => ['172.67.73.18', '104.21.51.207', '104.21.13.19', '172.67.202.164'],
-        'api.streamtape.com' => ['195.35.23.222', '195.35.23.223', '195.35.23.235'],
-        'streamtape.com'     => ['195.35.23.222', '195.35.23.223'],
-        'streamtape.to'      => ['195.35.23.222', '195.35.23.223'],
+        'videy.co'           => [
+            '172.67.73.18', '104.21.51.207', '104.21.31.25', '172.67.68.221',
+            '104.21.33.242', '172.67.140.232', '104.21.84.148', '172.67.181.189'
+        ],
+        'cdn.videy.co'       => [
+            '172.67.73.18', '104.21.51.207', '104.21.13.19', '172.67.202.164',
+            '104.21.72.3', '172.67.168.109', '104.21.41.206', '172.67.132.12'
+        ],
+        'api.streamtape.com' => ['195.35.23.222', '195.35.23.223', '195.35.23.235', '195.35.23.231'],
+        'streamtape.com'     => ['195.35.23.222', '195.35.23.223', '195.35.23.224'],
+        'streamtape.to'      => ['195.35.23.222', '195.35.23.223', '195.35.23.225'],
         // Content Clusters
         '861520586.tapecontent.net' => ['51.89.194.202'],
         '861113552.tapecontent.net' => ['51.83.140.208'],
@@ -24,7 +30,7 @@ class IspBypassClient
     /**
      * Get a rotated IP for the given host.
      */
-    protected static function getIpForHost(string $host): ?string
+    public static function getIpForHost(string $host): ?string
     {
         $ips = self::$mappings[$host] ?? null;
         if (!$ips) return null;

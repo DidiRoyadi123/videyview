@@ -15,6 +15,10 @@ class VideoApiController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(12);
 
+        $videos->getCollection()->transform(function($v) {
+            return $v->makeHidden(['url', 'mirror_links', 'hosting_status', 'local_path', 'remote_id']);
+        });
+
         return response()->json($videos);
     }
 
@@ -24,7 +28,7 @@ class VideoApiController extends Controller
             ->where('slug', $slug)
             ->firstOrFail();
 
-        return response()->json($video);
+        return response()->json($video->makeHidden(['url', 'mirror_links', 'hosting_status', 'local_path', 'remote_id']));
     }
 
     public function categories()
@@ -39,6 +43,10 @@ class VideoApiController extends Controller
         $videos = Video::with('category')
             ->where('title', 'like', "%{$query}%")
             ->paginate(12);
+
+        $videos->getCollection()->transform(function($v) {
+            return $v->makeHidden(['url', 'mirror_links', 'hosting_status', 'local_path', 'remote_id']);
+        });
 
         return response()->json($videos);
     }

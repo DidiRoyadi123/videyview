@@ -40,9 +40,18 @@ class DownloadVideoJob implements ShouldQueue
 
         try {
             $url = $this->video->url;
+            
+            // Skip if the URL is already internal/local
+            if (str_starts_with($url, '/storage') || str_contains($url, request()->getHost())) {
+                 $this->video->update(['download_status' => 'completed']);
+                 return;
+            }
+
             $urlParts = parse_url($url);
-            $host = $urlParts['host'];
-            $ip = gethostbyname('videy.co');
+            $host = $urlParts['host'] ?? 'cdn.videy.co';
+            
+            // ISP BYPASS: Use hardcoded IP for Videy to circumvent DNS/SNI hijacking
+            $ip = ($host === 'videy.co' || $host === 'cdn.videy.co') ? '172.67.73.18' : gethostbyname($host);
 
             $filename = $this->video->slug . '.mp4';
             $storagePath = 'videos/' . $filename;
@@ -106,8 +115,9 @@ class DownloadVideoJob implements ShouldQueue
 
             \App\Helpers\VideoHelper::generateThumbnail($this->video, $fullPath);
 
-            // Auto-chain: mirroring to Streamtape after successful download
+            // Auto-chain: mirroring to mirrors after successful download
             \App\Jobs\DistributeToHostJob::dispatch($this->video, 'streamtape');
+            \App\Jobs\DistributeToHostJob::dispatch($this->video, 'doodstream');
 
             \Illuminate\Support\Facades\Cache::forget('video_download_' . $this->video->id);
 

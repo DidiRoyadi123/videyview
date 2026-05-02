@@ -33,14 +33,19 @@ class VideoWorkerCommand extends Command
         $this->info('🚀 VideyView Worker Started...');
         
         do {
-            \Illuminate\Support\Facades\Cache::put('video_worker_heartbeat', now(), 120);
-            
-            $this->processPendingDownloads();
-            $this->processPendingMirrors();
-            
-            if ($this->option('daemon')) {
-                $this->info('   Waiting for new tasks (3s)...');
-                sleep(3);
+            try {
+                \Illuminate\Support\Facades\Cache::put('video_worker_heartbeat', now(), 120);
+                
+                $this->processPendingDownloads();
+                $this->processPendingMirrors();
+                
+                if ($this->option('daemon')) {
+                    $this->info('   Waiting for new tasks (3s)...');
+                    sleep(3);
+                }
+            } catch (\Exception $e) {
+                $this->error("🔥 Worker Loop Error: " . $e->getMessage());
+                sleep(10); // Cool down on error
             }
         } while ($this->option('daemon'));
 
@@ -50,6 +55,7 @@ class VideoWorkerCommand extends Command
 
     protected function processPendingDownloads()
     {
+        /** @var \Illuminate\Database\Eloquent\Collection<Video> $videos */
         $videos = Video::where(function($q) {
             $q->whereNull('download_status')
               ->orWhere('download_status', 'pending')
@@ -97,8 +103,16 @@ class VideoWorkerCommand extends Command
         
         // ISP BYPASS (Only for videy)
         if (str_contains($video->url, 'videy.co')) {
-            curl_setopt($ch, CURLOPT_RESOLVE, ["cdn.videy.co:443:172.67.73.18"]);
+            $host = 'cdn.videy.co';
+            if (!str_contains($video->url, 'cdn.')) {
+                $host = 'videy.co';
+            }
+            $ip = \App\Helpers\IspBypassClient::getIpForHost($host) ?? '172.67.73.18';
+            curl_setopt($ch, CURLOPT_RESOLVE, ["{$host}:443:{$ip}", "{$host}:80:{$ip}"]);
         }
+
+        curl_setopt($ch, CURLOPT_LOW_SPEED_LIMIT, 1024); // 1KB/s
+        curl_setopt($ch, CURLOPT_LOW_SPEED_TIME, 30);    // for 30 seconds
         
         $fp = fopen($fullPath, 'w+');
         curl_setopt($ch, CURLOPT_FILE, $fp);
@@ -158,6 +172,7 @@ class VideoWorkerCommand extends Command
 
     protected function processPendingMirrors()
     {
+        /** @var \Illuminate\Database\Eloquent\Collection<Video> $videos */
         $videos = Video::where('download_status', 'completed')
             ->where(function($q) {
                 $q->whereNull('hosting_status')

@@ -36,25 +36,47 @@ class VideoDistributionService
         return $count;
     }
 
-    public function bulkSyncLinks(string $content)
+    public function bulkSyncLinks(string $content, string $progressId = null)
     {
+        set_time_limit(0); // Mencegah 60 seconds exceeded untuk list puluhan ribu link
+
         $lines = explode("\n", $content);
+        $totalItems = count($lines);
         $currentMarker = null;
         $matchedCount = 0;
         $multiHost = app(MultiHostService::class);
+        $cacheKey = $progressId ? "bulksync_progress_{$progressId}" : null;
 
-        foreach ($lines as $line) {
+        if ($cacheKey) {
+            \Illuminate\Support\Facades\Cache::put($cacheKey, ['current' => 0, 'total' => $totalItems], 300);
+        }
+
+        // Performance Optimization: Cache all slugs in memory to avoid O(N) reverse LIKE queries
+        $allSlugs = Video::pluck('slug', 'id')->toArray();
+        // Sort by length desc to match longest slug first (most specific)
+        arsort($allSlugs);
+
+        foreach ($lines as $index => $line) {
             $line = trim($line);
+            
+            if ($cacheKey && $index % 20 === 0) {
+                \Illuminate\Support\Facades\Cache::put($cacheKey, ['current' => $index, 'total' => $totalItems], 300);
+            }
+
             if (empty($line)) continue;
 
             if (preg_match('/streamtape\.[a-z]+\/e\/([a-z0-9]+)\/([^\s\n\r]+)/i', $line, $matches)) {
                 $fileCode = $matches[1];
                 $filename = $matches[2];
-                $cleanName = str_ireplace('.mp4', '', $filename);
+                $cleanName = strtolower(str_ireplace('.mp4', '', $filename));
                 
-                $video = Video::whereRaw('? LIKE CONCAT("%", slug, "%")', [$cleanName])
-                    ->orderByRaw('LENGTH(slug) DESC')
-                    ->first();
+                $video = null;
+                foreach ($allSlugs as $id => $slug) {
+                    if (str_contains($cleanName, strtolower($slug))) {
+                        $video = Video::find($id);
+                        break;
+                    }
+                }
 
                 if ($video) {
                     $embedUrl = "https://streamtape.to/e/{$fileCode}/{$filename}";
@@ -71,18 +93,35 @@ class VideoDistributionService
             }
 
             if ($currentMarker && filter_var($line, FILTER_VALIDATE_URL)) {
-                $video = Video::whereRaw('LOWER(slug) LIKE ?', ["%$currentMarker%"])
-                    ->orWhereRaw('LOWER(url) LIKE ?', ["%$currentMarker%"])
-                    ->first();
+                $currentMarker = strtolower($currentMarker);
+                $video = null;
+                
+                foreach ($allSlugs as $id => $slug) {
+                    $slug = strtolower($slug);
+                    if (str_contains($slug, $currentMarker) || str_contains($currentMarker, $slug)) {
+                        $video = Video::find($id);
+                        break;
+                    }
+                }
 
                 if ($video) {
                     $host = str_contains($line, 'streamtape') ? 'streamtape' : 'doodstream';
-                    $multiHost->updateStatus($video, $host, 'success', $line);
-                    $matchedCount++;
+                    
+                    // LAKUKAN PENGECEKAN APAKAH ADA KESAMAAN JIKA SAMA ABAIKAN
+                    $existingLinks = is_array($video->mirror_links) ? $video->mirror_links : [];
+                    if (!isset($existingLinks[$host]) || $existingLinks[$host] !== $line) {
+                        $multiHost->updateStatus($video, $host, 'success', $line);
+                        $matchedCount++;
+                    }
                 }
                 $currentMarker = null;
             }
         }
+        
+        if ($cacheKey) {
+            \Illuminate\Support\Facades\Cache::put($cacheKey, ['current' => $totalItems, 'total' => $totalItems], 300);
+        }
+        
         return $matchedCount;
     }
 }

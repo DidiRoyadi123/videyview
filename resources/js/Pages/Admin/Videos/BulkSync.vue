@@ -1,26 +1,64 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, onBeforeUnmount } from 'vue';
 
 const form = useForm({
     content: '',
 });
 
 const isProcessing = ref(false);
+const progressText = ref('');
+let progressInterval = null;
 
-const submit = () => {
+const pollProgress = async () => {
+    // Legacy cache polling endpoint fallback
+};
+
+const submit = async () => {
     isProcessing.value = true;
-    form.post(route('admin.videos.bulk-sync.store'), {
-        preserveScroll: true,
-        onSuccess: () => {
-            form.reset('content');
-            isProcessing.value = false;
-        },
-        onError: () => {
-            isProcessing.value = false;
+    progressText.value = 'Mempersiapkan...';
+    
+    const lines = form.content.split('\n');
+    const totalLines = lines.length;
+    
+    let chunks = [];
+    let currentChunk = [];
+    
+    // Safely chunk every 100 lines, ensuring we don't break markers
+    for(let i=0; i<lines.length; i++) {
+        currentChunk.push(lines[i]);
+        if (currentChunk.length >= 100 && !lines[i].includes('<!--')) {
+            chunks.push(currentChunk.join('\n'));
+            currentChunk = [];
         }
-    });
+    }
+    if (currentChunk.length > 0) chunks.push(currentChunk.join('\n'));
+    
+    let processedLines = 0;
+    let totalMatched = 0;
+    
+    for(let chunk of chunks) {
+        try {
+            const resp = await window.axios.post(route('admin.videos.bulk-sync.chunk'), { content: chunk });
+            totalMatched += resp.data.matched;
+            processedLines += chunk.split('\n').length;
+            
+            // Cap at totalLines just in case
+            if (processedLines > totalLines) processedLines = totalLines;
+            progressText.value = `${processedLines}/${totalLines} baris`;
+        } catch (e) {
+            console.error('Error in chunk sync:', e);
+            break;
+        }
+    }
+    
+    isProcessing.value = false;
+    progressText.value = '';
+    form.reset('content');
+    
+    // Dispatch global toast success
+    document.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: `Berhasil menyinkronkan ${totalMatched} tautan secara massal.` } }));
 };
 </script>
 
@@ -88,7 +126,7 @@ const submit = () => {
                                     <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                                     </svg>
-                                    <span>{{ isProcessing ? 'Memproses...' : 'Mulai Sinkronisasi' }}</span>
+                                    <span>{{ isProcessing ? (progressText ? 'Memproses... ' + progressText : 'Memproses...') : 'Mulai Sinkronisasi' }}</span>
                                 </button>
                             </div>
                         </form>

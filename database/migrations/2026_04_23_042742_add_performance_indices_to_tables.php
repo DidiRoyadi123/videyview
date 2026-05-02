@@ -26,6 +26,18 @@ return new class extends Migration
     {
         $indexName = "{$table}_{$column}_index";
         
+        // Skip check for SQLite or other non-mysql drivers in tests
+        if (DB::getDriverName() !== 'mysql') {
+            try {
+                Schema::table($table, function (Blueprint $tableGroup) use ($column) {
+                    $tableGroup->index($column);
+                });
+            } catch (\Exception $e) {
+                // Ignore if index already exists in SQLite
+            }
+            return;
+        }
+        
         // Check if index exists (MySQL/MariaDB)
         $exists = DB::select("SHOW INDEX FROM {$table} WHERE Key_name = ?", [$indexName]);
 

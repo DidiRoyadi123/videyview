@@ -35,11 +35,19 @@ class DoodstreamDriver extends BaseDriver
      */
     public function upload(Video $video): array
     {
-        // Prioritize Remote Upload (Link Mirroring)
+        // 1. Prioritize Local Upload
+        if ($video->download_status === 'completed' && $video->local_path) {
+            $localFilePath = storage_path('app/public/' . $video->local_path);
+            if (is_file($localFilePath)) {
+                return $this->uploadLocalFile($localFilePath);
+            }
+        }
+
+        // 2. Fallback to Remote Upload (Link Mirroring)
         $sourceUrl = $video->cdn_url ?: $video->url;
 
         if (!$sourceUrl) {
-            throw new \Exception("No source URL available for Doodstream mirroring.");
+            throw new \Exception("No source URL or local file available for Doodstream mirroring.");
         }
 
         Log::info("Doodstream: Initiating remote upload for video {$video->id} from source: {$sourceUrl}");
@@ -57,13 +65,56 @@ class DoodstreamDriver extends BaseDriver
 
         $data = $response->json();
         
-        // Doodstream usually returns the file_code immediately for remote uploads
         if (!isset($data['result'][0]['filecode'])) {
-             // Sometimes it's in a different format
              if (isset($data['result']['filecode'])) {
                  $fileCode = $data['result']['filecode'];
              } else {
                  throw new \Exception("Doodstream failed to provide file_code: " . json_encode($data));
+             }
+        } else {
+            $fileCode = $data['result'][0]['filecode'];
+        }
+
+        return [
+            'file_id' => $fileCode,
+            'embed_url' => "https://doodapi.co/e/{$fileCode}",
+            'status' => 'success'
+        ];
+    }
+
+    private function uploadLocalFile(string $filePath): array
+    {
+        Log::info("Doodstream: Initiating local file upload from: {$filePath}");
+
+        // Step 1: Get Upload Server URL
+        $serverResp = $this->http()->get($this->baseUrl . 'upload/server', [
+            'key' => $this->apiKey
+        ]);
+
+        if ($serverResp->failed() || !isset($serverResp->json()['result'])) {
+            throw new \Exception("Doodstream failed to provide upload server.");
+        }
+
+        $serverUrl = $serverResp->json()['result'];
+
+        // Step 2: Upload file to server URL
+        $response = $this->http()
+            ->attach('file', fopen($filePath, 'r'), basename($filePath))
+            ->post($serverUrl, [
+                'api_key' => $this->apiKey
+            ]);
+
+        if ($response->failed()) {
+            throw new \Exception("Doodstream local upload failed: " . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (!isset($data['result'][0]['filecode'])) {
+             if (isset($data['result']['filecode'])) {
+                 $fileCode = $data['result']['filecode'];
+             } else {
+                 throw new \Exception("Doodstream failed to extract file_code after local upload: " . json_encode($data));
              }
         } else {
             $fileCode = $data['result'][0]['filecode'];
@@ -105,21 +156,7 @@ class DoodstreamDriver extends BaseDriver
      */
     public function getThumbnailUrl(string $fileId): ?string
     {
-        try {
-            $response = $this->http($this->baseUrl)
-                ->get($this->baseUrl . 'file/info', [
-                    'key' => $this->apiKey,
-                    'file_code' => $fileId
-                ]);
-
-            if ($response->successful()) {
-                $data = $response->json();
-                return $data['result'][0]['protected_embed'] ?? null;
-            }
-        } catch (\Exception $e) {
-            // Silently fail thumbnail fetch
-        }
-        return null;
+        return "https://doodapi.co/api/file/image?key={$this->apiKey}&file_code={$fileId}";
     }
 
     /**

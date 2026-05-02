@@ -168,24 +168,43 @@ const handleVideoPlaying = () => {
 const activeAccentColor = ref('79, 70, 229'); // Default indigo RGB
 
 const extractDominantColor = (imgUrl) => {
+    if (!imgUrl) return;
+    
     const img = new Image();
     img.crossOrigin = "Anonymous";
     img.src = imgUrl;
+    
+    const timeout = setTimeout(() => {
+        activeAccentColor.value = '79, 70, 229'; // Default indigo
+    }, 2000);
+
     img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = 1;
-        canvas.height = 1;
-        ctx.drawImage(img, 0, 0, 1, 1);
-        const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
-        
-        // Ensure color isn't too dark or too light for UI consistency
-        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-        if (luminance < 0.2 || luminance > 0.8) {
-            activeAccentColor.value = '79, 70, 229'; // Stick to indigo
-        } else {
-            activeAccentColor.value = `${r}, ${g}, ${b}`;
+        clearTimeout(timeout);
+        try {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 1;
+            canvas.height = 1;
+            ctx.drawImage(img, 0, 0, 1, 1);
+            const data = ctx.getImageData(0, 0, 1, 1).data;
+            const [r, g, b] = data;
+            
+            // Calculate luminance to ensure readability
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            if (luminance < 0.15 || luminance > 0.85) {
+                activeAccentColor.value = '79, 70, 229';
+            } else {
+                activeAccentColor.value = `${r}, ${g}, ${b}`;
+            }
+        } catch (e) {
+            console.warn("Color extraction failed:", e);
+            activeAccentColor.value = '79, 70, 229';
         }
+    };
+
+    img.onerror = () => {
+        clearTimeout(timeout);
+        activeAccentColor.value = '79, 70, 229';
     };
 };
 

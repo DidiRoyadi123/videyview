@@ -62,9 +62,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/videos/check-health', [App\Http\Controllers\Admin\VideoController::class, 'checkHealth'])->name('videos.check-health');
         Route::post('/videos/export-social', [App\Http\Controllers\Admin\VideoController::class, 'exportSocialLinks'])->name('videos.export-social');
         Route::post('/videos/suggest-metadata', [App\Http\Controllers\Admin\VideoController::class, 'suggestMetadata'])->name('videos.suggest-metadata');
+        Route::post('/videos/retry-failed', [App\Http\Controllers\Admin\VideoController::class, 'retryFailed'])->name('videos.retry-failed');
         
         Route::get('/videos/bulk-sync', [App\Http\Controllers\Admin\VideoController::class, 'bulkSyncView'])->name('videos.bulk-sync');
         Route::post('/videos/bulk-sync', [App\Http\Controllers\Admin\VideoController::class, 'bulkSyncLinks'])->name('videos.bulk-sync.store');
+        Route::post('/videos/bulk-sync/chunk', [App\Http\Controllers\Admin\VideoController::class, 'bulkSyncChunk'])->name('videos.bulk-sync.chunk');
+        Route::get('/videos/bulk-sync-progress', [App\Http\Controllers\Admin\VideoController::class, 'bulkSyncRealtimeProgress'])->name('videos.bulk-sync.progress');
+        Route::get('/videos/mirrors', [App\Http\Controllers\Admin\VideoController::class, 'mirrorsView'])->name('videos.mirrors');
         Route::get('/videos/bulk-upload', [App\Http\Controllers\Admin\VideoController::class, 'bulkUploadView'])->name('videos.bulk-upload');
         Route::post('/videos/upload-ajax', [App\Http\Controllers\Admin\VideoController::class, 'storeAjax'])->name('videos.upload-ajax');
 
