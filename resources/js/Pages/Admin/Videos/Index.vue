@@ -1,6 +1,6 @@
 <script setup>
 import { useForm, router, usePage, Head } from '@inertiajs/vue3';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import MaterioLayout from '@/Layouts/MaterioLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
@@ -375,13 +375,14 @@ const getMirrorStatusClass = (status) => {
     if (!status) return 'bg-slate-700';
     if (status === 'success') return 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]';
     if (status.startsWith('failed')) return 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]';
-    if (status === 'uploading') return 'bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.4)]';
+    if (status === 'uploading' || status === 'remote_processing') return 'bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.4)]';
     if (status === 'skipped') return 'bg-amber-500/50 border-amber-500/30';
     return 'bg-slate-700';
 };
 
 const getMirrorStatusLabel = (status) => {
     if (!status) return 'Pending';
+    if (status === 'remote_processing') return 'Remote Processing';
     // Handle "failed: reason" format
     if (status.startsWith('failed:')) {
         return 'Failed: ' + status.replace('failed:', '').trim();
@@ -499,80 +500,59 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
 <template>
     <Head title="Admin - Manajemen Video" />
 
-    <AuthenticatedLayout>
+    <MaterioLayout>
         <template #header>
-            <div class="flex items-center justify-between flex-wrap gap-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-1 h-8 bg-indigo-600 rounded-full"></div>
-                    <h2 class="text-2xl sm:text-3xl font-black text-[rgb(var(--text-main))] italic uppercase tracking-tight">Brankas <span class="text-indigo-600">Video</span></h2>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-[#3A3541]">Manajemen Video</h2>
+                    <p class="text-sm text-gray-500 mt-1">Kelola, sinkronkan, dan pantau seluruh konten media Anda.</p>
                 </div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <button 
                         @click="downloadSyncManifest"
-                        class="px-3 py-2 bg-indigo-500/5 hover:bg-indigo-600/10 text-indigo-600 text-[10px] font-bold uppercase tracking-widest rounded-xl border border-indigo-500/20 transition-all flex items-center gap-1.5 group"
+                        class="px-4 py-2 bg-white hover:bg-gray-50 text-gray-600 text-xs font-bold uppercase tracking-widest rounded-lg border border-gray-200 transition-all flex items-center gap-2 shadow-sm"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 group-hover:translate-y-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
                         Ekspor Manifes
                     </button>
                     <Link 
                         :href="route('admin.videos.bulk-upload')"
-                        class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-1.5 group"
+                        class="px-4 py-2 bg-[#8C57FF] hover:bg-[#7B47E6] text-white text-xs font-bold uppercase tracking-widest rounded-lg shadow-md shadow-[#8C57FF]/20 transition-all flex items-center gap-2"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                        </svg>
                         Bulk Pro
                     </Link>
                     <button 
                         @click="runHealthCheck"
-                        class="px-3 py-2 bg-emerald-500/5 hover:bg-emerald-600/10 text-emerald-600 text-[10px] font-bold uppercase tracking-widest rounded-xl border border-emerald-500/20 transition-all flex items-center gap-1.5 group"
+                        class="px-4 py-2 bg-green-50 hover:bg-green-100 text-green-600 text-xs font-bold uppercase tracking-widest rounded-lg border border-green-200 transition-all flex items-center gap-2"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 group-hover:rotate-180 transition-transform duration-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04c0 4.833 1.807 9.242 4.798 12.584a11.11 11.11 0 0011.64 0c2.991-3.342 4.798-7.751 4.798-12.584z" />
-                        </svg>
                         Audit Kesehatan
                     </button>
-                    <button 
-                        @click="retryFailedDownloads"
-                        class="px-3 py-2 bg-red-500/5 hover:bg-red-600/10 text-red-600 text-[10px] font-bold uppercase tracking-widest rounded-xl border border-red-500/20 transition-all flex items-center gap-1.5 group"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 group-hover:rotate-12 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Ulangi Gagal
-                    </button>
-                    <div class="bg-indigo-500/10 px-3 py-1.5 rounded-full border border-indigo-500/20">
-                        <span class="text-[10px] font-bold uppercase text-indigo-600 tracking-widest">{{ videos.total }} Terdaftar</span>
-                    </div>
                 </div>
             </div>
         </template>
 
         <div class="py-6">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <div class="max-w-7xl mx-auto space-y-6">
                 <!-- Add Video & Bulk Upload Grid -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <!-- Manual Upload -->
-                    <div class="lg:col-span-2 glass shadow-royale p-5 rounded-2xl border border-[rgb(var(--border-main))]">
-                        <div class="flex items-center gap-4 mb-5 overflow-x-auto no-scrollbar">
-                            <h3 class="text-base font-black text-[rgb(var(--text-main))] flex items-center gap-3 uppercase tracking-tight shrink-0">
-                                <span class="w-1 h-5 bg-indigo-600 rounded-full"></span>
-                                Masukan
+                    <div class="lg:col-span-2 materio-card p-6">
+                        <div class="flex items-center gap-4 mb-6 overflow-x-auto no-scrollbar pb-1">
+                            <h3 class="text-lg font-bold text-[#3A3541] flex items-center gap-3 tracking-tight shrink-0">
+                                <span class="w-1 h-6 bg-[#8C57FF] rounded-full"></span>
+                                Tambah Video
                             </h3>
-                            <div class="flex bg-[rgb(var(--bg-input))] p-1 rounded-xl border border-[rgb(var(--border-main))] shadow-inner shrink-0">
+                            <div class="flex bg-gray-50 p-1 rounded-xl border border-gray-100 shrink-0">
                                 <button 
                                     @click="uploadType = 'url'"
-                                    :class="uploadType === 'url' ? 'bg-indigo-600 text-white shadow' : 'text-[rgb(var(--text-muted))] hover:text-indigo-500'"
-                                    class="px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all"
+                                    :class="uploadType === 'url' ? 'bg-[#8C57FF] text-white shadow-sm' : 'text-gray-500 hover:text-[#8C57FF]'"
+                                    class="px-4 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all"
                                 >
                                     URL Jarak Jauh
                                 </button>
                                 <button 
                                     @click="uploadType = 'file'"
-                                    :class="uploadType === 'file' ? 'bg-indigo-600 text-white shadow' : 'text-[rgb(var(--text-muted))] hover:text-indigo-500'"
-                                    class="px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all"
+                                    :class="uploadType === 'file' ? 'bg-[#8C57FF] text-white shadow-sm' : 'text-gray-500 hover:text-[#8C57FF]'"
+                                    class="px-4 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all"
                                 >
                                     File Langsung
                                 </button>
@@ -583,46 +563,46 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="space-y-1.5">
                                     <div class="flex items-center justify-between">
-                                        <InputLabel for="title" value="Identitas Video" class="!text-[rgb(var(--text-muted))] !text-[10px] !font-bold !uppercase !tracking-widest" />
+                                        <InputLabel for="title" value="Judul Video" class="!text-gray-500 !text-[11px] !font-bold !uppercase !tracking-wider" />
                                         <button 
                                             type="button"
                                             @click="aiSuggest(form)"
                                             :disabled="aiLoading"
-                                            class="text-[9px] font-bold text-indigo-400 uppercase hover:text-indigo-300 transition-colors flex items-center gap-1"
+                                            class="text-[10px] font-bold text-[#8C57FF] uppercase hover:underline transition-colors flex items-center gap-1"
                                         >
                                             <span v-if="aiLoading" class="animate-spin">🌀</span>
                                             <span v-else>✨</span>
                                             AI Suggest
                                         </button>
                                     </div>
-                                    <TextInput id="title" type="text" class="mt-1 block w-full !bg-[rgb(var(--bg-input))] !border-none !rounded-xl !py-2.5 !px-4 !text-sm !shadow-inner focus:ring-2 focus:ring-indigo-500/20" v-model="form.title" required placeholder="Enter title..." />
+                                    <TextInput id="title" type="text" class="mt-1 block w-full" v-model="form.title" required placeholder="Contoh: Video Dokumenter Alam" />
                                     <InputError class="mt-1 text-xs" :message="form.errors.title" />
                                 </div>
                                 <div v-if="uploadType === 'url'" class="space-y-1.5">
-                                    <InputLabel for="url" value="Tautan Sumber" class="!text-[rgb(var(--text-muted))] !text-[10px] !font-bold !uppercase !tracking-widest" />
-                                    <TextInput id="url" type="text" class="mt-1 block w-full !bg-[rgb(var(--bg-input))] !border-none !rounded-xl !py-2.5 !px-4 !text-sm !shadow-inner focus:ring-2 focus:ring-indigo-500/20" v-model="form.url" required placeholder="Paste URL..." />
+                                    <InputLabel for="url" value="Tautan Videy.co" class="!text-gray-500 !text-[11px] !font-bold !uppercase !tracking-wider" />
+                                    <TextInput id="url" type="text" class="mt-1 block w-full" v-model="form.url" required placeholder="https://videy.co/v?id=..." />
                                     <InputError class="mt-1 text-xs" :message="form.errors.url" />
                                 </div>
                                 <div v-else class="space-y-1.5">
-                                    <InputLabel for="video_file" value="File Video" class="!text-[rgb(var(--text-muted))] !text-[10px] !font-bold !uppercase !tracking-widest" />
-                                    <div class="bg-[rgb(var(--bg-input))] rounded-xl p-2 shadow-inner">
+                                    <InputLabel for="video_file" value="File Video" class="!text-gray-500 !text-[11px] !font-bold !uppercase !tracking-wider" />
+                                    <div class="bg-gray-50 rounded-lg p-2 border border-gray-100">
                                         <input 
                                             id="video_file" 
                                             type="file" 
                                             accept="video/*"
                                             @input="form.video_file = $event.target.files[0]"
-                                            class="block w-full text-[10px] text-[rgb(var(--text-muted))] file:mr-3 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:uppercase file:bg-indigo-600/10 file:text-indigo-600 hover:file:bg-indigo-600/20 transition-all cursor-pointer"
+                                            class="block w-full text-[11px] text-gray-500 file:mr-3 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:uppercase file:bg-[#8C57FF]/10 file:text-[#8C57FF] hover:file:bg-[#8C57FF]/20 transition-all cursor-pointer"
                                             :required="uploadType === 'file'"
                                         />
                                     </div>
                                     <InputError class="mt-1 text-xs" :message="form.errors.video_file" />
                                 </div>
                                 <div class="space-y-1.5">
-                                    <InputLabel for="category_id" value="Kategori" class="!text-[rgb(var(--text-muted))] !text-[10px] !font-bold !uppercase !tracking-widest" />
+                                    <InputLabel for="category_id" value="Kategori" class="!text-gray-500 !text-[11px] !font-bold !uppercase !tracking-wider" />
                                     <select 
                                         id="category_id" 
                                         v-model="form.category_id" 
-                                        class="mt-1 block w-full !bg-[rgb(var(--bg-input))] !border-none !rounded-xl !py-2.5 !px-4 !text-sm !shadow-inner focus:ring-2 focus:ring-indigo-500/20 text-[rgb(var(--text-main))] appearance-none cursor-pointer"
+                                        class="mt-1 block w-full bg-white border-gray-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-[#8C57FF]/10 focus:border-[#8C57FF] text-[#3A3541] appearance-none cursor-pointer transition-all"
                                     >
                                         <option value="">Tanpa Kategori</option>
                                         <option v-for="cat in categories" :key="cat.id" :value="cat.id">
@@ -632,44 +612,43 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                                     <InputError class="mt-1 text-xs" :message="form.errors.category_id" />
                                 </div>
                             </div>
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
-                                <div class="flex flex-wrap items-center gap-4">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-4 border-t border-gray-50">
+                                <div class="flex flex-wrap items-center gap-6">
                                     <label class="flex items-center group cursor-pointer">
-                                        <Checkbox name="is_premium" v-model:checked="form.is_premium" class="!bg-[rgb(var(--bg-input))] !border-none !text-indigo-600 rounded-md w-4 h-4 shadow-inner" />
-                                        <span class="ms-2 text-xs font-bold uppercase tracking-widest text-[rgb(var(--text-muted))] group-hover:text-indigo-600 transition">Premium</span>
+                                        <Checkbox name="is_premium" v-model:checked="form.is_premium" />
+                                        <span class="ms-2 text-[11px] font-bold uppercase tracking-wider text-gray-500 group-hover:text-[#8C57FF] transition">Konten Premium</span>
                                     </label>
                                     
                                     <label v-if="uploadType === 'url'" class="flex items-center group cursor-pointer">
-                                        <Checkbox name="skip_download" v-model:checked="form.skip_download" class="!bg-[rgb(var(--bg-input))] !border-none !text-indigo-600 rounded-md w-4 h-4 shadow-inner" />
-                                        <span class="ms-2 text-xs font-bold uppercase tracking-widest text-[rgb(var(--text-muted))] group-hover:text-amber-600 transition">Skip Lock</span>
+                                        <Checkbox name="skip_download" v-model:checked="form.skip_download" />
+                                        <span class="ms-2 text-[11px] font-bold uppercase tracking-wider text-gray-500 group-hover:text-amber-600 transition">Lewati Unduhan</span>
                                     </label>
                                 </div>
-                                <PrimaryButton class="btn-premium !px-6 !py-2.5 shadow-lg shadow-indigo-500/20" :disabled="form.processing">
-                                    {{ form.processing ? 'Sedang Diproses...' : 'Tambahkan Video' }}
-                                </PrimaryButton>
+                                <button class="px-8 py-2.5 bg-[#8C57FF] text-white font-bold rounded-lg hover:bg-[#7B47E6] transition-all shadow-md shadow-[#8C57FF]/20 uppercase text-xs tracking-widest disabled:opacity-50" :disabled="form.processing">
+                                    {{ form.processing ? 'Sedang Diproses...' : 'Tambahkan Ke Vault' }}
+                                </button>
                             </div>
                         </form>
                     </div>
 
                     <!-- Bulk Upload -->
-                    <div class="glass shadow-royale p-5 rounded-2xl border border-[rgb(var(--border-main))] bg-gradient-to-br from-indigo-500/5 to-transparent relative group overflow-hidden">
-                         <div class="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                         <h3 class="text-base font-black text-[rgb(var(--text-main))] mb-4 flex items-center gap-3 uppercase tracking-tight relative z-10">
-                            <span class="w-1 h-5 bg-violet-600 rounded-full"></span>
+                    <div class="materio-card p-6 bg-gradient-to-br from-[#8C57FF]/5 to-transparent relative group">
+                         <h3 class="text-lg font-bold text-[#3A3541] mb-6 flex items-center gap-3 tracking-tight relative z-10">
+                            <span class="w-1 h-6 bg-[#A478FF] rounded-full"></span>
                             Logistik Massal
                         </h3>
                         <form @submit.prevent="submitBulk" class="space-y-4 relative z-10">
                             <div class="relative group/file">
                                 <input id="file" type="file" @input="bulkForm.file = $event.target.files[0]" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" required />
-                                <div class="border-2 border-dashed border-[rgb(var(--border-main))] rounded-xl p-6 text-center group-hover/file:border-indigo-500/30 transition-all bg-[rgb(var(--bg-input))] shadow-inner">
-                                    <div class="text-2xl mb-2 group-hover/file:scale-110 transition-transform duration-300">📜</div>
-                                    <div class="text-[10px] font-bold text-[rgb(var(--text-muted))] uppercase tracking-widest">
-                                        {{ bulkForm.file ? bulkForm.file.name : 'Upload JSON / CSV' }}
+                                <div class="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center group-hover/file:border-[#8C57FF]/30 transition-all bg-gray-50">
+                                    <div class="text-3xl mb-3 group-hover/file:scale-110 transition-transform duration-300">📦</div>
+                                    <div class="text-[11px] font-bold text-gray-500 uppercase tracking-widest">
+                                        {{ bulkForm.file ? bulkForm.file.name : 'Drop JSON / CSV' }}
                                     </div>
                                 </div>
                                 <InputError class="mt-1" :message="bulkForm.errors.file" />
                             </div>
-                            <button class="w-full bg-[rgb(var(--text-main))] text-[rgb(var(--bg-main))] font-bold py-2.5 rounded-xl hover:brightness-110 transition uppercase tracking-widest text-[10px] shadow-lg" :disabled="bulkForm.processing">
+                            <button class="w-full bg-[#3A3541] text-white font-bold py-3 rounded-lg hover:bg-[#2A2531] transition shadow-md uppercase tracking-widest text-[11px]" :disabled="bulkForm.processing">
                                 {{ bulkForm.processing ? 'Memproses...' : 'Kirim Logistik' }}
                             </button>
                         </form>
@@ -677,29 +656,29 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                 </div>
 
                 <!-- Quick Stats -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                     <div class="glass shadow-royale p-4 rounded-2xl border border-[rgb(var(--border-main))] bg-gradient-to-br from-indigo-500/5 to-transparent">
-                         <div class="text-[10px] font-bold text-[rgb(var(--text-muted))] uppercase tracking-widest mb-1">Perpustakaan Asal</div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                     <div class="materio-card p-5 bg-gradient-to-br from-[#8C57FF]/5 to-transparent">
+                         <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Vault Library</div>
                          <div class="flex items-baseline gap-2">
-                             <div class="text-3xl font-black text-[rgb(var(--text-main))] italic tracking-tight">{{ total_local || 0 }}</div>
-                             <div class="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">Vault Items</div>
+                             <div class="text-3xl font-bold text-[#3A3541] tracking-tight">{{ total_local || 0 }}</div>
+                             <div class="text-[11px] font-bold text-[#8C57FF] uppercase">Items</div>
                          </div>
                      </div>
-                     <div class="glass shadow-royale p-4 rounded-2xl border border-[rgb(var(--border-main))] bg-gradient-to-br from-emerald-500/5 to-transparent">
-                         <div class="text-[10px] font-bold text-[rgb(var(--text-muted))] uppercase tracking-widest mb-1">Efisiensi Sinkronisasi</div>
-                         <div class="flex items-baseline justify-between mb-2">
-                             <div class="text-3xl font-black text-[rgb(var(--text-main))] italic tracking-tight">{{ total_mirrored || 0 }}</div>
-                             <div class="text-xs font-bold text-emerald-600 uppercase tracking-widest">{{ Math.round((total_mirrored / total_local) * 100) || 0 }}%</div>
+                     <div class="materio-card p-5 bg-gradient-to-br from-green-500/5 to-transparent">
+                         <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Sync Efficiency</div>
+                         <div class="flex items-baseline justify-between mb-3">
+                             <div class="text-3xl font-bold text-[#3A3541] tracking-tight">{{ total_mirrored || 0 }}</div>
+                             <div class="text-xs font-bold text-green-600">{{ Math.round((total_mirrored / total_local) * 100) || 0 }}%</div>
                          </div>
-                         <div class="w-full h-1.5 bg-[rgb(var(--bg-input))] rounded-full overflow-hidden">
-                             <div class="h-full bg-emerald-500 transition-all duration-1000 rounded-full" :style="{ width: ((total_mirrored / total_local) * 100 || 0) + '%' }"></div>
+                         <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                             <div class="h-full bg-green-500 transition-all duration-1000 rounded-full" :style="{ width: ((total_mirrored / total_local) * 100 || 0) + '%' }"></div>
                          </div>
                      </div>
-                     <div class="glass shadow-royale p-4 rounded-2xl border border-[rgb(var(--border-main))] bg-gradient-to-br from-amber-500/5 to-transparent">
-                         <div class="text-[10px] font-bold text-[rgb(var(--text-muted))] uppercase tracking-widest mb-1">Antrean Sinkronisasi</div>
+                     <div class="materio-card p-5 bg-gradient-to-br from-amber-500/5 to-transparent">
+                         <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Queue Pending</div>
                          <div class="flex items-baseline gap-2">
-                             <div class="text-3xl font-black text-[rgb(var(--text-main))] italic tracking-tight">{{ total_pending || 0 }}</div>
-                             <div class="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Menunggu</div>
+                             <div class="text-3xl font-bold text-[#3A3541] tracking-tight">{{ total_pending || 0 }}</div>
+                             <div class="text-[11px] font-bold text-amber-600 uppercase">Awaiting</div>
                          </div>
                      </div>
                 </div>
@@ -707,55 +686,55 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                 <!-- Mirroring Live Monitor (Informative Dashboard) -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
                     <!-- Automated Pipeline Dashboard -->
-                    <div class="glass-dark p-8 rounded-[2rem] border border-white/5 space-y-8 relative overflow-hidden group">
-                        <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-emerald-500/5 opacity-50"></div>
+                    <div class="materio-card p-8 relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-gradient-to-br from-[#8C57FF]/5 via-transparent to-green-500/5 opacity-50"></div>
                         
-                        <div class="flex items-center justify-between border-b border-white/5 pb-4 relative z-10">
-                            <h3 class="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
-                                <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
-                                Saluran Distribusi
+                        <div class="flex items-center justify-between border-b border-gray-100 pb-4 relative z-10">
+                            <h3 class="text-[11px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-[#8C57FF] animate-pulse"></span>
+                                Distribution Pipeline
                             </h3>
-                            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Multi-Host Mirroring Pipeline</span>
+                            <span class="text-[9px] font-bold text-[#8C57FF] uppercase tracking-widest italic">Multi-Host Sync Engine</span>
                         </div>
 
                         <div class="flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
                             <!-- Stage 1: Videy CDN -->
                             <div class="flex flex-col items-center text-center gap-2 flex-1">
-                                <div :class="{'animate-pulse bg-indigo-500/20 border-indigo-500/40': activeDownloads > 0}" class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xl shadow-inner shadow-white/5 transition-all duration-500">
+                                <div :class="{'animate-pulse bg-[#8C57FF]/10 border-[#8C57FF]/30': activeDownloads > 0}" class="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-2xl shadow-sm transition-all duration-500">
                                     ☁️
                                 </div>
-                                <div class="text-[10px] font-black text-white uppercase tracking-widest">Videy CDN</div>
+                                <div class="text-[11px] font-bold text-[#3A3541] uppercase">Videy CDN</div>
                                 <div class="flex flex-col gap-0.5">
-                                    <div class="text-[9px] font-bold text-slate-500 uppercase">{{ total_download_pending }} Pending</div>
-                                    <div v-if="activeDownloads > 0" class="text-[8px] font-black text-indigo-400 uppercase animate-pulse">{{ activeDownloads }} Downloading ({{ averageDownloadProgress }}%)</div>
+                                    <div class="text-[10px] text-gray-500">{{ total_download_pending }} Pending</div>
+                                    <div v-if="activeDownloads > 0" class="text-[9px] font-bold text-[#8C57FF] animate-pulse">{{ activeDownloads }} DL ({{ averageDownloadProgress }}%)</div>
                                 </div>
                             </div>
 
-                            <div class="hidden sm:block text-slate-700 animate-pulse">→</div>
+                            <div class="hidden sm:block text-gray-200 animate-pulse text-xl">→</div>
 
                             <!-- Stage 2: Local Storage -->
                             <div class="flex flex-col items-center text-center gap-2 flex-1">
-                                <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-xl shadow-lg shadow-indigo-500/10">💾</div>
-                                <div class="text-[10px] font-black text-white uppercase tracking-widest">Penyimpanan Lokal</div>
-                                <div class="text-[9px] font-bold text-indigo-400 uppercase">{{ localReady }} Siap</div>
+                                <div class="w-14 h-14 rounded-2xl bg-[#8C57FF]/10 border border-[#8C57FF]/20 flex items-center justify-center text-2xl shadow-md shadow-[#8C57FF]/10">💾</div>
+                                <div class="text-[11px] font-bold text-[#3A3541] uppercase">Vault Local</div>
+                                <div class="text-[10px] font-bold text-[#8C57FF]">{{ localReady }} Ready</div>
                             </div>
 
-                            <div class="hidden sm:block text-slate-700 animate-pulse">→</div>
+                            <div class="hidden sm:block text-gray-200 animate-pulse text-xl">→</div>
 
                             <!-- Stage 3: Mirrors -->
                             <div class="flex flex-col items-center text-center gap-2 flex-1 relative group/mirrors">
-                                <div :class="{'animate-pulse bg-emerald-500/20 border-emerald-500/40': activeMirrors > 0}" class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xl shadow-lg shadow-emerald-500/10 transition-all duration-500">
+                                <div :class="{'animate-pulse bg-green-500/10 border-green-500/30': activeMirrors > 0}" class="w-14 h-14 rounded-2xl bg-green-50 border border-green-100 flex items-center justify-center text-2xl shadow-sm transition-all duration-500">
                                     📼
                                 </div>
-                                <div class="text-[10px] font-black text-white uppercase tracking-widest">Mirror Aktif</div>
+                                <div class="text-[11px] font-bold text-[#3A3541] uppercase">Mirrors Active</div>
                                 <div class="flex flex-col gap-0.5">
                                     <div class="flex items-center gap-1.5 justify-center">
-                                        <div class="flex flex-col gap-0.5">
-                                            <span class="text-[8px] font-bold text-emerald-400 uppercase">TAP: {{ hostStats.streamtape }}</span>
-                                            <span class="text-[8px] font-bold text-blue-400 uppercase">DDS: {{ hostStats.doodstream }}</span>
+                                        <div class="flex flex-col">
+                                            <span class="text-[9px] font-bold text-green-600">TAP: {{ hostStats.streamtape }}</span>
+                                            <span class="text-[9px] font-bold text-blue-500">DDS: {{ hostStats.doodstream }}</span>
                                         </div>
                                     </div>
-                                    <div v-if="activeMirrors > 0" class="text-[8px] font-black text-yellow-400 uppercase animate-pulse">{{ activeMirrors }} Syncing ({{ averageUploadProgress }}%)</div>
+                                    <div v-if="activeMirrors > 0" class="text-[9px] font-bold text-amber-500 animate-pulse">{{ activeMirrors }} Sync ({{ averageUploadProgress }}%)</div>
                                 </div>
                             </div>
                         </div>
@@ -775,258 +754,221 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                     </div>
 
                     <!-- Recent Activity -->
-                    <div class="glass-dark p-8 rounded-[2rem] border border-white/5 space-y-6">
-                        <div class="flex items-center justify-between border-b border-white/5 pb-4">
-                            <h3 class="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-                                Aktivitas Sinkronisasi Terkini
+                    <div class="materio-card p-8">
+                         <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
+                            <h3 class="text-[11px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                                Synchronization Activity
                             </h3>
                         </div>
-                        <div class="space-y-3">
+                        <div class="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar pr-2">
                             <div v-for="video in recentActivityList" :key="video.id" 
-                                 class="flex items-center gap-4 p-3 bg-white/2 rounded-2xl border border-white/5 hover:bg-white/5 transition cursor-pointer"
+                                 class="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-[#8C57FF]/30 transition-all cursor-pointer group/item"
                                  @click="openPreview(video)"
                             >
-                                <div class="w-12 aspect-video rounded-lg bg-slate-800 flex-shrink-0 overflow-hidden">
-                                     <img v-if="video.thumbnail_url" :src="video.thumbnail_url" class="w-full h-full object-cover" />
-                                     <div v-else class="w-full h-full flex items-center justify-center text-[10px]">🎬</div>
+                                <div class="w-14 aspect-video rounded-lg bg-gray-200 flex-shrink-0 overflow-hidden shadow-sm relative">
+                                     <img v-if="video.thumbnail_url" :src="video.thumbnail_url" class="w-full h-full object-cover transition-transform group-hover/item:scale-110" />
+                                     <div v-else class="w-full h-full flex items-center justify-center text-xs">🎬</div>
+                                     <div class="absolute inset-0 bg-black/0 group-hover/item:bg-black/20 transition-colors"></div>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <div class="text-[10px] font-black text-white truncate uppercase tracking-tighter">{{ video.title }}</div>
-                                    <div class="flex flex-wrap gap-1.5 mt-1.5">
+                                    <div class="text-[11px] font-bold text-[#3A3541] truncate uppercase tracking-tight group-hover/item:text-[#8C57FF] transition-colors">{{ video.title }}</div>
+                                    <div class="flex flex-wrap gap-2 mt-2">
                                         <div v-for="(status, host) in video.hosting_status" :key="host" 
-                                             class="flex items-center gap-1.5 px-1.5 py-0.5 rounded border"
+                                             class="flex items-center gap-1.5 px-2 py-0.5 rounded-lg border text-[9px] font-bold uppercase tracking-wider"
                                              :class="{
-                                                'bg-emerald-500/10 border-emerald-500/20 text-emerald-400': status === 'success',
-                                                'bg-amber-500/10 border-amber-500/20 text-amber-400': status === 'pending' || status === 'uploading',
-                                                'bg-red-500/10 border-red-500/20 text-red-400': status && status.startsWith('failed'),
+                                                'bg-green-50 border-green-100 text-green-600': status === 'success',
+                                                'bg-amber-50 border-amber-100 text-amber-600': status === 'pending' || status === 'uploading' || status === 'remote_processing',
+                                                'bg-red-50 border-red-100 text-red-500': status && status.startsWith('failed'),
                                              }"
                                         >
                                             <div class="w-1.5 h-1.5 rounded-full"
                                                  :class="{
-                                                    'bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]': status === 'success',
-                                                    'bg-amber-500 animate-pulse shadow-[0_0_5px_rgba(245,158,11,0.5)]': status === 'pending' || status === 'uploading',
-                                                    'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]': status && status.startsWith('failed')
+                                                    'bg-green-500': status === 'success',
+                                                    'bg-amber-500 animate-pulse': status === 'pending' || status === 'uploading' || status === 'remote_processing',
+                                                    'bg-red-500': status && status.startsWith('failed')
                                                  }"
                                             ></div>
-                                            <span class="text-[8px] font-black uppercase tracking-widest">{{ host === 'streamtape' ? 'TAP' : (host === 'doodstream' ? 'DDS' : host.substring(0,3)) }}</span>
-                                            <span v-if="status === 'uploading' && uploadProgress[video.id]" class="text-[8px] font-bold">{{ uploadProgress[video.id] }}%</span>
+                                            {{ host === 'streamtape' ? 'TAP' : (host === 'doodstream' ? 'DDS' : host.substring(0,3)) }}
+                                            <span v-if="(status === 'uploading' || status === 'remote_processing') && uploadProgress[video.id]" class="ml-1 text-blue-600">
+                                                {{ uploadProgress[video.id] }}%
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="text-[8px] font-black text-slate-500 uppercase flex flex-col items-end gap-1">
-                                    <span>{{ new Date(video.updated_at).toLocaleTimeString() }}</span>
+                                <div class="text-[9px] font-bold text-gray-400 uppercase flex flex-col items-end gap-1">
+                                    <span>{{ new Date(video.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }}</span>
                                 </div>
                             </div>
-                            <div v-if="recent_activity.length === 0" class="text-center py-6 text-[10px] font-black text-slate-600 uppercase tracking-widest">
-                                Menunggu sinkronisasi...
+                            <div v-if="recent_activity.length === 0" class="text-center py-12 text-gray-300 text-[11px] font-bold uppercase tracking-widest">
+                                No recent activity
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Video List -->
-                <div class="glass-dark rounded-2xl border border-white/5 overflow-hidden shadow-xl">
-                    <div class="px-5 py-4 border-b border-white/5 flex items-center justify-between flex-wrap gap-3">
-                         <h3 class="font-black text-white uppercase tracking-widest text-sm flex items-center gap-3">
-                             Perpustakaan Aktif
+                <div class="materio-card overflow-hidden">
+                    <div class="px-6 py-5 border-b border-gray-50 flex items-center justify-between flex-wrap gap-4">
+                         <h3 class="font-bold text-[#3A3541] text-lg flex items-center gap-3">
+                            <span class="w-1 h-6 bg-[#8C57FF] rounded-full"></span>
+                             Video Vault
                              
                              <!-- Proxy Toggle -->
-                             <div class="flex items-center bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 gap-2">
-                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Proksi</span>
+                             <div class="flex items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 gap-2">
+                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Proxy</span>
                                 <button 
                                     @click="proxyActive = !proxyActive; toggleProxy()"
-                                    :class="proxyActive ? 'bg-indigo-600' : 'bg-slate-700'"
-                                    class="relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                                    :class="proxyActive ? 'bg-[#8C57FF]' : 'bg-gray-300'"
+                                    class="relative inline-flex h-4 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out"
                                 >
                                     <span 
-                                        :class="proxyActive ? 'translate-x-4' : 'translate-x-0'"
-                                        class="pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                        :class="proxyActive ? 'translate-x-5' : 'translate-x-0'"
+                                        class="pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out"
                                     ></span>
                                 </button>
-                                <span :class="proxyActive ? 'text-indigo-400' : 'text-slate-500'" class="text-[10px] font-bold uppercase">
+                                <span :class="proxyActive ? 'text-[#8C57FF]' : 'text-gray-400'" class="text-[10px] font-bold">
                                     {{ proxyActive ? 'ON' : 'OFF' }}
                                 </span>
                              </div>
                          </h3>
                          
                          <!-- Bulk Actions Toolbar -->
-                         <div v-if="selectedIds.length > 0" class="flex flex-wrap items-center gap-2 animate-in fade-in slide-in-from-right-4">
-                            <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">{{ selectedIds.length }} Terpilih</span>
-                            <div class="flex items-center gap-1.5">
+                         <div v-if="selectedIds.length > 0" class="flex flex-wrap items-center gap-3">
+                            <span class="text-[11px] font-bold text-[#8C57FF] uppercase tracking-wider">{{ selectedIds.length }} selected</span>
+                            <div class="flex items-center gap-2">
                                 <button 
                                     @click="exportSocialLinks"
-                                    class="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 text-[10px] font-bold border border-emerald-500/20 rounded-lg transition uppercase tracking-widest flex items-center gap-1.5"
+                                    class="px-4 py-1.5 bg-green-50 hover:bg-green-100 text-green-600 text-[11px] font-bold rounded-lg transition uppercase flex items-center gap-2 border border-green-100"
                                 >
-                                    📥 <span class="hidden sm:inline">Ekspor</span>
+                                    Export
                                 </button>
                                 <button 
                                     @click="deleteSelected"
-                                    class="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-bold border border-red-500/20 rounded-lg transition uppercase tracking-widest flex items-center gap-1.5"
+                                    class="px-4 py-1.5 bg-red-50 hover:bg-red-100 text-red-500 text-[11px] font-bold rounded-lg transition uppercase flex items-center gap-2 border border-red-100"
                                 >
-                                    🗑️ <span class="hidden sm:inline">Hapus</span>
+                                    Delete
                                 </button>
                             </div>
                          </div>
                     </div>
                     <div class="overflow-x-auto">
+                        <div class="overflow-x-auto no-scrollbar">
                         <table class="w-full text-left">
                             <thead>
-                                <tr class="text-[10px] font-black uppercase text-slate-500 tracking-widest border-b border-white/5 bg-white/5">
-                                    <th class="py-3 px-4 w-10">
-                                        <Checkbox :checked="isAllSelected" @change="toggleSelectAll" class="!bg-white/5 !border-white/10 !text-indigo-600 rounded-lg" />
+                                <tr class="text-[11px] font-bold uppercase text-gray-400 tracking-wider border-b border-gray-100 bg-gray-50/30">
+                                    <th class="py-4 px-6 w-12">
+                                        <Checkbox :checked="isAllSelected" @change="toggleSelectAll" class="!bg-white !border-gray-300 !text-[#8C57FF] rounded" />
                                     </th>
-                                    <th class="py-3 px-4">Detail Media</th>
-                                    <th class="py-3 px-4 hidden md:table-cell">Kesehatan</th>
-                                    <th class="py-3 px-4 hidden lg:table-cell">Kategori</th>
-                                    <th class="py-3 px-4 hidden sm:table-cell">Tingkatan</th>
-                                    <th class="py-3 px-4">Sinkronisasi</th>
-                                    <th class="py-3 px-4 hidden lg:table-cell">Penyimpanan</th>
-                                    <th class="py-3 px-4 hidden md:table-cell text-center">Statistik</th>
-                                    <th class="py-3 px-4 text-right">Aksi</th>
+                                    <th class="py-4 px-4">Detail Media</th>
+                                    <th class="py-4 px-4 hidden md:table-cell">Health Status</th>
+                                    <th class="py-4 px-4 hidden lg:table-cell">Category</th>
+                                    <th class="py-4 px-4 hidden sm:table-cell">Tier</th>
+                                    <th class="py-4 px-4">Mirrors</th>
+                                    <th class="py-4 px-4 hidden lg:table-cell">Storage</th>
+                                    <th class="py-4 px-4 hidden md:table-cell text-center">Stats</th>
+                                    <th class="py-4 px-6 text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-white/5">
-                                <tr v-for="video in videos.data" :key="video.id" class="group hover:bg-white/5 transition duration-200" :class="{'bg-indigo-500/5': selectedIds.includes(video.id)}">
-                                    <td class="py-3 px-4">
-                                        <Checkbox v-model:checked="selectedIds" :value="video.id" class="!bg-white/5 !border-white/10 !text-indigo-600 rounded-lg" />
+                            <tbody class="divide-y divide-gray-100">
+                                <tr v-for="video in videos.data" :key="video.id" class="group hover:bg-gray-50 transition-colors" :class="{'bg-[#8C57FF]/5': selectedIds.includes(video.id)}">
+                                    <td class="py-3 px-6">
+                                        <Checkbox v-model:checked="selectedIds" :value="video.id" class="!bg-white !border-gray-300 !text-[#8C57FF] rounded" />
                                     </td>
                                     <td class="py-3 px-4">
                                         <div class="flex items-center gap-3">
-                                            <div :ref="el => observeVideo(el, video.id)" class="w-20 aspect-video flex-shrink-0 rounded-xl bg-slate-900 border flex items-center justify-center overflow-hidden relative transition cursor-pointer group/thumb"
-                                                 @click="openPreview(video)"
-                                                 :class="video.download_status === 'completed' ? 'border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)]' : 'border-white/10 group-hover:border-indigo-500/30'">
+                                            <div :ref="el => observeVideo(el, video.id)" class="w-20 aspect-video flex-shrink-0 rounded-lg bg-gray-100 border border-gray-100 flex items-center justify-center overflow-hidden relative cursor-pointer"
+                                                 @click="openPreview(video)">
                                                 <img 
                                                     v-if="video.thumbnail_url" 
                                                     :src="video.thumbnail_url" 
-                                                    class="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-500" 
+                                                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                                                     loading="lazy" 
                                                 />
-                                                <div v-else class="w-full h-full bg-slate-800 flex items-center justify-center">
-                                                    <span class="text-sm opacity-50">🎬</span>
+                                                <div v-else class="w-full h-full flex items-center justify-center">
+                                                    <span class="text-sm">🎬</span>
                                                 </div>
-                                                <div class="absolute inset-0 bg-indigo-600/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
-                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                     </svg>
-                                                </div>
-                                                <div v-if="video.download_status === 'completed'" class="absolute top-1 left-1 text-[8px] bg-green-500 text-green-950 px-1.5 py-0.5 rounded font-black z-10 uppercase">LOC</div>
+                                                <div v-if="video.download_status === 'completed'" class="absolute top-1 left-1 text-[8px] bg-green-500 text-white px-1.5 py-0.5 rounded-md font-bold z-10 uppercase">LOCAL</div>
                                             </div>
-                                            <div class="cursor-pointer min-w-0">
-                                                 <div class="text-xs font-bold text-white group-hover:text-indigo-400 transition tracking-tight leading-tight truncate max-w-[200px]" @click="openPreview(video)">{{ video.title }}</div>
-                                                 <div class="text-[10px] text-slate-500 font-mono truncate opacity-60 max-w-[180px] mt-0.5">{{ video.url }}</div>
+                                            <div class="min-w-0">
+                                                 <div class="text-sm font-bold text-[#3A3541] group-hover:text-[#8C57FF] transition truncate max-w-[180px] sm:max-w-[240px]" @click="openPreview(video)">{{ video.title }}</div>
+                                                 <div class="text-[11px] text-gray-400 truncate opacity-80 max-w-[180px] mt-0.5">{{ video.url }}</div>
                                             </div>
                                         </div>
                                     </td>
                                     <td class="py-3 px-4 hidden md:table-cell">
-                                        <div v-if="video.health_report" class="flex flex-col gap-1.5">
+                                        <div v-if="video.health_report" class="flex flex-col gap-1">
                                              <div class="flex items-center gap-2">
-                                                 <div :class="video.health_report.local?.status === 'healthy' ? 'bg-emerald-500' : (video.health_report.local?.status === 'na' ? 'bg-slate-700' : 'bg-red-500')" class="w-2 h-2 rounded-full"></div>
-                                                 <span class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">LOC</span>
+                                                 <div :class="video.health_report.local?.status === 'healthy' ? 'bg-green-500' : (video.health_report.local?.status === 'na' ? 'bg-gray-300' : 'bg-red-500')" class="w-2 h-2 rounded-full"></div>
+                                                 <span class="text-[10px] font-bold text-gray-400">LOC</span>
                                              </div>
                                              <div class="flex items-center gap-2">
-                                                 <div :class="video.health_report.videy?.status === 'healthy' ? 'bg-emerald-500' : (video.health_report.videy?.status === 'na' ? 'bg-slate-700' : 'bg-red-500')" class="w-2 h-2 rounded-full"></div>
-                                                 <span class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">VDY</span>
+                                                 <div :class="video.health_report.videy?.status === 'healthy' ? 'bg-green-500' : (video.health_report.videy?.status === 'na' ? 'bg-gray-300' : 'bg-red-500')" class="w-2 h-2 rounded-full"></div>
+                                                 <span class="text-[10px] font-bold text-gray-400">VDY</span>
                                              </div>
                                              <div class="flex items-center gap-2">
-                                                 <div :class="video.health_report.streamtape?.status === 'healthy' ? 'bg-emerald-500' : (video.health_report.streamtape?.status === 'na' ? 'bg-slate-700' : 'bg-red-500')" class="w-2 h-2 rounded-full"></div>
-                                                 <span class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">TAP</span>
+                                                 <div :class="video.health_report.streamtape?.status === 'healthy' ? 'bg-green-500' : (video.health_report.streamtape?.status === 'na' ? 'bg-gray-300' : 'bg-red-500')" class="w-2 h-2 rounded-full"></div>
+                                                 <span class="text-[10px] font-bold text-gray-400">TAP</span>
                                              </div>
                                         </div>
-                                        <div v-else class="text-[10px] font-bold text-slate-700 uppercase italic">-</div>
                                     </td>
                                     <td class="py-3 px-4 hidden lg:table-cell">
-                                         <span v-if="video.category" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/5 border border-indigo-500/10 rounded-full text-[10px] font-bold text-white uppercase tracking-tight">
+                                         <span v-if="video.category" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 border border-gray-100 rounded-lg text-[11px] font-bold text-[#3A3541]">
                                              <span class="text-sm">{{ video.category.icon || '📁' }}</span>
                                              {{ video.category.name }}
                                          </span>
-                                         <span v-else class="text-[10px] font-bold text-slate-700 uppercase italic">-</span>
+                                         <span v-else class="text-[11px] text-gray-300 italic">-</span>
                                      </td>
                                     <td class="py-3 px-4 hidden sm:table-cell">
-                                         <span v-if="video.is_free_to_all" class="bg-green-500/10 text-green-400 text-[10px] px-2.5 py-1 rounded-full border border-green-500/20 font-bold uppercase tracking-wider">Free</span>
-                                         <span v-else-if="video.is_premium" class="bg-indigo-500/10 text-indigo-400 text-[10px] px-2.5 py-1 rounded-full border border-indigo-500/20 font-bold uppercase tracking-wider">Premium</span>
-                                         <span v-else class="bg-slate-800 text-slate-400 text-[10px] px-2.5 py-1 rounded-full border border-white/5 font-bold uppercase tracking-wider">Standard</span>
+                                         <span v-if="video.is_premium" class="bg-[#8C57FF]/10 text-[#8C57FF] text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border border-[#8C57FF]/10">Premium</span>
+                                         <span v-else class="bg-gray-100 text-gray-500 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Standard</span>
                                      </td>
                                     <td class="py-3 px-4">
                                         <div class="flex flex-col gap-1.5">
-                                            <!-- Streamtape Dot -->
-                                            <div class="flex items-center gap-2">
-                                                <div class="group/host relative">
-                                                    <div 
-                                                        :class="getMirrorStatusClass(video.hosting_status?.['streamtape'])"
-                                                        class="w-3 h-3 rounded-full border border-white/20 transition-all cursor-help"
-                                                        @click="distributeVideo(video.id, 'streamtape')"
-                                                    ></div>
-                                                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-black text-[10px] font-bold uppercase text-white rounded-lg opacity-0 group-hover/host:opacity-100 transition whitespace-nowrap z-20 pointer-events-none shadow-lg">
-                                                        Tape: {{ getMirrorStatusLabel(video.hosting_status?.['streamtape']) }}
-                                                    </div>
+                                            <div v-for="(status, host) in (video.hosting_status || {streamtape: null, doodstream: null})" :key="host" class="flex items-center gap-2">
+                                                <div 
+                                                    :class="[getMirrorStatusClass(status), {'border-dashed': host === 'doodstream'}]"
+                                                    class="w-2.5 h-2.5 rounded-full cursor-help transition-all"
+                                                    @click="distributeVideo(video.id, host)"
+                                                    :title="getMirrorStatusLabel(status)"
+                                                ></div>
+                                                <span class="text-[9px] font-bold text-gray-400 uppercase">{{ host === 'streamtape' ? 'TAP' : (host === 'doodstream' ? 'DDS' : host.substring(0,3)) }}</span>
+                                                <span v-if="(status === 'uploading' || status === 'remote_processing') && uploadProgress[video.id]" class="text-[9px] font-bold text-blue-500 animate-pulse">
+                                                    {{ uploadProgress[video.id] }}%
+                                                </span>
+                                                <div v-if="(status === 'uploading' || status === 'remote_processing') && uploadProgress[video.id]" class="w-12 h-1 bg-gray-100 rounded-full overflow-hidden ml-1">
+                                                    <div class="h-full bg-blue-500 transition-all duration-300" :style="{ width: uploadProgress[video.id] + '%' }"></div>
                                                 </div>
-                                                <span class="text-[9px] font-bold uppercase text-slate-500 tracking-tighter">TAP</span>
-                                            </div>
-                                            
-                                            <!-- Doodstream Dot -->
-                                            <div class="flex items-center gap-2">
-                                                <div class="group/host relative">
-                                                    <div 
-                                                        :class="getMirrorStatusClass(video.hosting_status?.['doodstream'])"
-                                                        class="w-3 h-3 rounded-full border border-white/20 transition-all cursor-help border-dashed"
-                                                        @click="distributeVideo(video.id, 'doodstream')"
-                                                    ></div>
-                                                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-black text-[10px] font-black uppercase text-white rounded-lg opacity-0 group-hover/host:opacity-100 transition whitespace-nowrap z-20 pointer-events-none shadow-lg">
-                                                        Dood: {{ getMirrorStatusLabel(video.hosting_status?.['doodstream']) }}
-                                                    </div>
-                                                </div>
-                                                <span class="text-[9px] font-bold uppercase text-slate-500 tracking-tighter">DDS</span>
                                             </div>
                                         </div>
                                     </td>
                                     <td class="py-3 px-4 hidden lg:table-cell">
                                          <div class="flex flex-col gap-1">
-                                             <span v-if="video.download_status === 'completed'" class="text-[10px] font-bold uppercase text-emerald-400 bg-green-500/10 px-2.5 py-1 rounded-full border border-green-500/20 w-fit flex items-center gap-1">
-                                                 <div class="w-1.5 h-1.5 rounded-full bg-emerald-400"></div> Local
+                                             <span v-if="video.download_status === 'completed'" class="text-[10px] font-bold text-green-600 bg-green-50 px-2.5 py-1 rounded-full border border-green-100 w-fit">
+                                                 LOCAL
                                              </span>
-                                             <div v-else-if="video.download_status === 'downloading'" class="flex flex-col gap-1 w-full max-w-[120px]">
-                                                 <span class="text-[10px] font-bold uppercase text-blue-400 flex items-center justify-between">
-                                                     <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span> DL</span>
+                                             <div v-else-if="video.download_status === 'downloading'" class="flex flex-col gap-1 w-full max-w-[100px]">
+                                                 <span class="text-[9px] font-bold text-blue-500 flex justify-between">
+                                                     <span>DL</span>
                                                      <span>{{ downloadProgress[video.id] || 0 }}%</span>
                                                  </span>
-                                                 <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                                     <div class="h-full bg-blue-500 transition-all duration-300 rounded-full" :style="{ width: (downloadProgress[video.id] || 0) + '%' }"></div>
+                                                 <div class="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                                                     <div class="h-full bg-blue-500 transition-all duration-300" :style="{ width: (downloadProgress[video.id] || 0) + '%' }"></div>
                                                  </div>
                                              </div>
-                                             <span v-else-if="video.download_status === 'failed'" class="text-[10px] font-bold uppercase text-red-400 bg-red-500/10 px-2.5 py-1 rounded-full border border-red-500/20 w-fit">Gagal</span>
-                                             <span v-else class="text-[10px] font-bold uppercase text-slate-500 w-fit">Cloud</span>
+                                             <span v-else class="text-[10px] font-bold text-gray-400 uppercase">Remote</span>
                                          </div>
                                      </td>
                                      <td class="py-3 px-4 hidden md:table-cell text-center">
-                                         <div class="inline-flex flex-col items-center px-3 py-1.5 bg-white/5 rounded-xl border border-white/10">
-                                             <span class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Views</span>
-                                             <span class="text-white font-black text-sm tracking-tight">{{ video.views.toLocaleString() }}</span>
-                                         </div>
+                                         <div class="text-xs font-bold text-[#3A3541]">{{ video.views.toLocaleString() }}</div>
                                      </td>
-                                     <td class="py-3 px-4 text-right">
-                                         <div class="flex justify-end gap-1.5">
-                                             <button @click="openEditModal(video)" class="p-2 text-indigo-400 hover:bg-indigo-500/20 hover:text-white rounded-lg transition-all bg-white/5 border border-white/5" title="Edit Video">
-                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-5M16.242 19.172l3.414-3.414a2 2 0 000-2.828l-3.414-3.414a2 2 0 00-2.828 0L10 12.586l.707.707L13.414 10l2.828 2.828L13.414 16.242l.707.707 2.121-2.121z" />
-                                                 </svg>
+                                     <td class="py-3 px-6 text-right">
+                                         <div class="flex justify-end gap-2">
+                                             <button @click="openEditModal(video)" class="p-2 text-gray-400 hover:text-[#8C57FF] hover:bg-[#8C57FF]/10 rounded-lg transition-all" title="Edit">
+                                                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                              </button>
-                                             <button @click="copyMaskedLink(video)" class="p-2 text-emerald-400 hover:bg-emerald-500/20 hover:text-white rounded-lg transition-all bg-white/5 border border-white/5" title="Copy Link">
-                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.142a2 2 0 012.828 2.828l-3.536 3.536a2 2 0 01-2.828 0M9.172 14.858a2 2 0 01-2.828-2.828l3.536-3.536a2 2 0 012.828 0M11 11l.01.01" />
-                                                 </svg>
-                                             </button>
-                                             <button @click="openPreview(video)" class="p-2 text-indigo-400 hover:bg-indigo-500/20 hover:text-white rounded-lg transition-all bg-white/5 border border-white/5" title="Preview">
-                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                 </svg>
-                                             </button>
-                                             <button @click="deleteVideo(video.id)" class="p-2 text-red-500 hover:bg-red-500/20 hover:text-white rounded-lg transition-all bg-white/5 border border-white/5" title="Hapus">
-                                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                 </svg>
+                                             <button @click="deleteVideo(video.id)" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Hapus">
+                                                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                              </button>
                                          </div>
                                      </td>
@@ -1034,16 +976,17 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                             </tbody>
                         </table>
                     </div>
+                    </div>
 
                     <!-- Pagination Footer -->
-                    <div class="px-5 py-3 border-t border-white/5 bg-slate-900/80 flex justify-center">
-                         <div class="flex gap-1.5 flex-wrap justify-center">
+                    <div class="px-6 py-4 border-t border-gray-50 bg-gray-50/30 flex justify-center">
+                         <div class="flex gap-2 flex-wrap justify-center">
                             <Link v-for="link in videos.links" :key="link.label" 
                                 :href="link.url || '#'"
                                 :class="[
-                                    'px-6 py-3 rounded-2xl text-sm font-black transition-all uppercase tracking-[0.2em] shadow-inner',
-                                    link.active ? 'bg-indigo-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)]' : 'text-slate-500 hover:text-white hover:bg-white/10',
-                                    !link.url ? 'opacity-20 cursor-not-allowed' : ''
+                                    'px-4 py-2 rounded-lg text-[13px] font-bold transition-all shadow-sm',
+                                    link.active ? 'bg-[#8C57FF] text-white' : 'bg-white text-gray-500 hover:text-[#8C57FF] hover:bg-gray-50 border border-gray-100',
+                                    !link.url ? 'opacity-30 cursor-not-allowed' : ''
                                 ]"
                                 v-html="link.label"
                             />
@@ -1201,7 +1144,7 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); });
                 </div>
             </div>
         </Teleport>
-    </AuthenticatedLayout>
+    </MaterioLayout>
 </template>
 
 <style scoped>

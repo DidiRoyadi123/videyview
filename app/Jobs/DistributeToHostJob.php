@@ -44,6 +44,25 @@ class DistributeToHostJob implements ShouldQueue
         try {
             $service->updateStatus($this->video, $this->host, 'uploading');
 
+            // SMART MIRRORING: Prefer Remote Upload if source URL is available (faster, saves bandwidth)
+            if (!empty($this->video->url) && filter_var($this->video->url, FILTER_VALIDATE_URL)) {
+                if (method_exists($driver, 'remoteUpload')) {
+                    try {
+                        Log::info("MultiHost: Attempting remote upload for {$this->video->slug} to {$this->host}");
+                        $remoteResult = $driver->remoteUpload($this->video, $this->video->url);
+                        
+                        if (isset($remoteResult['remote_id'])) {
+                            $service->updateStatus($this->video, $this->host, 'remote_processing');
+                            \App\Jobs\CheckRemoteUploadJob::dispatch($this->video, $this->host, $remoteResult['remote_id']);
+                            return; // Exit handle, the CheckRemoteUploadJob will take over
+                        }
+                    } catch (\Exception $remoteEx) {
+                        Log::warning("MultiHost: Remote upload failed for {$this->video->slug}, falling back to local upload: " . $remoteEx->getMessage());
+                    }
+                }
+            }
+
+            // FALLBACK: Traditional local file upload
             $result = $driver->upload($this->video);
 
             $service->updateStatus($this->video, $this->host, 'success', $result);

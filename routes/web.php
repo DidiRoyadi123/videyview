@@ -65,6 +65,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/videos/retry-failed', [App\Http\Controllers\Admin\VideoController::class, 'retryFailed'])->name('videos.retry-failed');
         
         Route::get('/videos/bulk-sync', [App\Http\Controllers\Admin\VideoController::class, 'bulkSyncView'])->name('videos.bulk-sync');
+        Route::get('/videos/bulk-edit', [App\Http\Controllers\Admin\VideoController::class, 'bulkEditView'])->name('videos.bulk-edit');
+        Route::post('/videos/bulk-update-metadata', [App\Http\Controllers\Admin\VideoController::class, 'bulkUpdateMetadata'])->name('videos.bulk-update-metadata');
         Route::post('/videos/bulk-sync', [App\Http\Controllers\Admin\VideoController::class, 'bulkSyncLinks'])->name('videos.bulk-sync.store');
         Route::post('/videos/bulk-sync/chunk', [App\Http\Controllers\Admin\VideoController::class, 'bulkSyncChunk'])->name('videos.bulk-sync.chunk');
         Route::get('/videos/bulk-sync-progress', [App\Http\Controllers\Admin\VideoController::class, 'bulkSyncRealtimeProgress'])->name('videos.bulk-sync.progress');

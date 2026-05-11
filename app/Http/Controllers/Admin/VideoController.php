@@ -41,12 +41,23 @@ class VideoController extends Controller
         return !$result['success'] ? response()->json($result, 422) : response()->json($result);
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $videos = Video::with('category')
-            ->orderByRaw("CASE WHEN download_status = 'completed' THEN 0 ELSE 1 END")
+        $query = Video::with('category');
+
+        if ($request->has('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('slug', 'like', "%{$search}%")
+                  ->orWhere('url', 'like', "%{$search}%");
+            });
+        }
+
+        $videos = $query->orderByRaw("CASE WHEN download_status = 'completed' THEN 0 ELSE 1 END")
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         $videos->getCollection()->transform(function ($video) {
             $video->local_url = $video->download_status === 'completed' && $video->local_path 
@@ -73,6 +84,7 @@ class VideoController extends Controller
             'recent_activity' => fn() => $this->getRecentActivity(),
             'proxy_enabled' => Setting::getValue('proxy_enabled', '1') === '1',
             'categories' => Category::orderBy('order')->get(['id', 'name']),
+            'filters' => $request->only(['search']),
         ]);
     }
 
@@ -271,7 +283,7 @@ class VideoController extends Controller
     public function bulkSyncChunk(Request $request)
     {
         $content = $request->input('content', '');
-        $matchedCount = $this->distribution->bulkSyncLinks($content);
+        $matchedCount = $this->distribution->bulkSyncLinks($content, auth()->id());
         return response()->json(['matched' => $matchedCount, 'success' => true]);
     }
 
@@ -326,5 +338,44 @@ class VideoController extends Controller
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Upload failed: ' . $e->getMessage()], 500);
         }
+    }
+
+    public function bulkEditView(Request $request)
+    {
+        $query = Video::query()->with('category');
+        
+        if ($request->search) {
+            $query->where('title', 'like', "%{$request->search}%");
+        }
+        
+        $videos = $query->latest()->paginate(100)->withQueryString();
+        $categories = Category::orderBy('name')->get(['id', 'name']);
+        
+        return Inertia::render('Admin/Videos/BulkEdit', [
+            'videos' => $videos,
+            'categories' => $categories,
+            'filters' => $request->only(['search'])
+        ]);
+    }
+
+    public function bulkUpdateMetadata(Request $request)
+    {
+        $request->validate([
+            'updates' => 'required|array',
+            'updates.*.id' => 'required|exists:videos,id',
+            'updates.*.title' => 'required|string|max:255',
+            'updates.*.category_id' => 'nullable|exists:categories,id',
+            'updates.*.is_premium' => 'boolean',
+        ]);
+
+        foreach ($request->updates as $update) {
+            Video::where('id', $update['id'])->update([
+                'title' => $update['title'],
+                'category_id' => $update['category_id'],
+                'is_premium' => $update['is_premium'],
+            ]);
+        }
+
+        return back()->with('success', count($request->updates) . ' video metadata updated.');
     }
 }

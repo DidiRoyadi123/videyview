@@ -164,7 +164,9 @@ class VideoController extends Controller
         $watermarkText = Setting::where('key', 'watermark_text')->value('value') ?? 'VIDEYVIEW PROTECT';
 
         // Hide sensitive fields before sending to the frontend
-        $secureVideo = $video->makeHidden(['url', 'mirror_links', 'hosting_status', 'local_path', 'remote_id'])->load(['comments.user.activeSubscription']);
+        $secureVideo = $video->makeHidden(['url', 'mirror_links', 'hosting_status', 'local_path', 'remote_id'])->load(['comments' => function($q) {
+            $q->whereNull('parent_id')->with(['user.activeSubscription', 'replies']);
+        }]);
 
         return Inertia::render('Videos/Show', [
             'video' => $secureVideo,

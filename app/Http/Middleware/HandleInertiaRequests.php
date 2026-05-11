@@ -47,6 +47,17 @@ class HandleInertiaRequests extends Middleware
             ],
             'anti_adblock_enabled' => Setting::getValue('anti_adblock_enabled', '1') === '1',
             'ui_template' => Setting::getValue('ui_template', 'classic'),
+            'ad_test_group' => function() use ($request) {
+                if (Setting::getValue('ad_ab_testing_enabled', '0') !== '1') {
+                    return 'a'; // Default to A if disabled
+                }
+                
+                if (!$request->session()->has('ad_test_group')) {
+                    $group = rand(0, 1) === 0 ? 'a' : 'b';
+                    $request->session()->put('ad_test_group', $group);
+                }
+                return $request->session()->get('ad_test_group');
+            },
             'ads' => function() {
                 // Determine if we should show ads on the current request
                 $user = Auth::user();

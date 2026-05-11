@@ -4,6 +4,7 @@ import MainLayout from '@/Layouts/MainLayout.vue';
 import DynamicWatermark from '@/Components/Video/DynamicWatermark.vue';
 import { ref, computed, inject, onUnmounted, watch, onMounted } from 'vue';
 import AdHandler from '@/Components/Ads/AdHandler.vue';
+import CommentItem from '@/Components/Video/CommentItem.vue';
 import axios from 'axios';
 
 const isSpark = inject('isSpark', computed(() => false));
@@ -228,6 +229,11 @@ const isNavigating = inject('isNavigating', false);
 const commentForm = useForm({
     content: '',
 });
+
+const emojis = ['🔥', '🎬', '😍', '👍', '😲', '💎', '👑'];
+const addEmoji = (emoji) => {
+    commentForm.content += emoji;
+};
 
 const submitComment = () => {
     commentForm.post(route('comments.store', props.video.id), {
@@ -532,6 +538,19 @@ const formatDate = (dateStr) => {
                                         <div v-if="commentForm.errors.content" class="text-red-500 text-[10px] mt-4 font-black uppercase tracking-widest bg-red-500/10 px-4 py-1.5 rounded-full w-fit border border-red-500/20">
                                             ⚠ {{ commentForm.errors.content }}
                                         </div>
+
+                                        <!-- Emoji Picker -->
+                                        <div class="flex gap-3 mt-4 px-2">
+                                            <button 
+                                                v-for="emoji in emojis" 
+                                                :key="emoji"
+                                                type="button"
+                                                @click="addEmoji(emoji)"
+                                                class="hover:scale-125 transition-transform text-2xl"
+                                            >
+                                                {{ emoji }}
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="flex justify-end">
                                         <button 
@@ -561,30 +580,13 @@ const formatDate = (dateStr) => {
 
                             <!-- Comment List -->
                             <div class="space-y-12">
-                                <div v-for="comment in video.comments" :key="comment.id" class="group relative flex gap-8 p-6 rounded-[32px] hover:bg-white/40 transition-all duration-500 border border-transparent hover:border-[rgb(var(--border-main))] hover:shadow-xl hover:shadow-indigo-500/5">
-                                    <div class="flex-shrink-0">
-                                        <div :class="[
-                                            'w-16 h-16 rounded-[24px] flex items-center justify-center font-black text-2xl shadow-xl relative transition-transform group-hover:scale-110',
-                                            comment.user.active_subscription ? 'bg-gradient-to-br from-indigo-500 to-indigo-700 text-white ring-4 ring-indigo-500/10 shadow-indigo-500/30' : 'bg-[rgb(var(--bg-input))] text-[rgb(var(--text-muted))]'
-                                        ]">
-                                            {{ comment.user.name.charAt(0).toUpperCase() }}
-                                            <div v-if="comment.user.active_subscription" class="absolute -top-1.5 -right-1.5 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center text-[11px] border-4 border-[rgb(var(--bg-main))] shadow-lg">👑</div>
-                                        </div>
-                                    </div>
-                                    <div class="flex-grow pt-1">
-                                        <div class="flex items-center gap-4 mb-3 flex-wrap">
-                                            <span class="text-sm font-black text-[rgb(var(--text-main))] tracking-tight uppercase">{{ comment.user.name }}</span>
-                                            <span v-if="comment.user.active_subscription" class="bg-indigo-500 text-white text-[9px] px-3 py-1 rounded-full font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20">PREMIUM</span>
-                                            <span class="text-[10px] text-[rgb(var(--text-muted))] font-bold uppercase tracking-widest ml-auto">{{ formatDate(comment.created_at) }}</span>
-                                        </div>
-                                        <p class="text-[rgb(var(--text-muted))] text-sm leading-relaxed font-medium">
-                                            {{ comment.content }}
-                                        </p>
-                                        <div v-if="canDelete(comment)" class="mt-6 opacity-0 group-hover:opacity-100 transition-all">
-                                            <button @click="deleteComment(comment.id)" class="text-[9px] text-red-500/60 hover:text-red-500 font-black uppercase tracking-[0.2em] transition-colors bg-red-500/5 px-4 py-1.5 rounded-full border border-red-500/10">Hapus Kiriman</button>
-                                        </div>
-                                    </div>
-                                </div>
+                                <CommentItem 
+                                    v-for="comment in video.comments" 
+                                    :key="comment.id" 
+                                    :comment="comment" 
+                                    :videoId="video.id"
+                                    :activeAccentColor="activeAccentColor"
+                                />
                                 
                                 <div v-if="video.comments.length === 0" class="text-center py-24 opacity-40">
                                     <div class="text-6xl mb-6">💬</div>

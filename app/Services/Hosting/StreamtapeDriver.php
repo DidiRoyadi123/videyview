@@ -91,11 +91,18 @@ class StreamtapeDriver extends BaseDriver
 
     public function remoteUpload(Video $video, string $remoteUrl): array
     {
-        $response = $this->http()->get("{$this->baseUrl}/remotedl/add", [
+        $params = [
             'login' => $this->login,
             'key'   => $this->key,
             'url'   => $remoteUrl
-        ]);
+        ];
+
+        // If it's a Videy link, add headers to bypass hotlink protection
+        if (str_contains($remoteUrl, 'videy.co')) {
+            $params['headers'] = "Referer: https://videy.co/\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+        }
+
+        $response = $this->http()->get("{$this->baseUrl}/remotedl/add", $params);
 
         if (!$response->successful() || !isset($response->json()['result']['id'])) {
             $msg = $response->json()['msg'] ?? $response->body();

@@ -229,7 +229,14 @@ watch(() => page.props.auth.user, () => {
 </script>
 
 <template>
-    <div :class="['ad-handler-wrapper', props.type]" ref="adContainer">
+    <div 
+        :class="[
+            'ad-handler-wrapper', 
+            props.type,
+            $page.props.ad_test_group === 'b' ? 'ab-group-b-layout' : 'ab-group-a-layout'
+        ]" 
+        ref="adContainer"
+    >
         <!-- Ad will be injected here -->
     </div>
 </template>
@@ -241,6 +248,47 @@ watch(() => page.props.auth.user, () => {
     align-items: center;
     min-height: 20px;
     width: 100%;
+    position: relative;
+}
+
+.ab-group-b-layout.banner {
+    padding: 15px;
+    background: rgba(var(--bg-input), 0.5);
+    border-radius: 24px;
+    border: 1px dashed rgba(var(--border-main), 0.5);
+    margin: 10px 0;
+}
+
+.ab-badge {
+    position: absolute;
+    top: -10px;
+    left: 20px;
+    background: #8C57FF;
+    color: white;
+    font-size: 8px;
+    font-weight: 900;
+    padding: 2px 8px;
+    border-radius: 10px;
+    letter-spacing: 0.1em;
+    z-index: 10;
+    display: flex;
+    items-center: center;
+    gap: 4px;
+    box-shadow: 0 4px 12px rgba(140, 87, 255, 0.3);
+}
+
+.pulse {
+    width: 4px;
+    height: 4px;
+    background: white;
+    border-radius: 50%;
+    animation: ab-pulse 2s infinite;
+}
+
+@keyframes ab-pulse {
+    0% { transform: scale(0.95); opacity: 0.7; }
+    70% { transform: scale(1.5); opacity: 0; }
+    100% { transform: scale(0.95); opacity: 0; }
 }
 
 .banner { width: 100%; }

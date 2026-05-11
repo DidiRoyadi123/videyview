@@ -1,8 +1,7 @@
 <script setup>
 import { Head, useForm } from '@inertiajs/vue3';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import MaterioLayout from '@/Layouts/MaterioLayout.vue';
 import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Checkbox from '@/Components/Checkbox.vue';
 import { useToast } from '@/Composables/useToast';
 import { ref } from 'vue';
@@ -87,10 +86,10 @@ const submitBulk = () => {
         onSuccess: () => {
             rawText.value = '';
             extractedUrls.value = [];
-            toastSuccess('Successfully saved videos to database.');
+            toastSuccess('Berhasil menyimpan video ke database.');
         },
         onError: () => {
-            toastError('Failed to save videos. Please check logs.');
+            toastError('Gagal menyimpan video. Periksa log sistem.');
         }
     });
 };
@@ -104,7 +103,7 @@ const copyCrawlScript = () => {
     const script = `
 (async function() {
     const isX = window.location.hostname.includes('x.com') || window.location.hostname.includes('twitter.com');
-    console.log("%c[Videy AutoCrawler] Memulai (" + (isX ? 'X/Twitter Mode' : 'Turbo Mode v2.1') + ")...", "color: #3b82f6; font-weight: bold; font-size: 14px;");
+    console.log("%c[Videy AutoCrawler] Memulai (" + (isX ? 'X/Twitter Mode' : 'Turbo Mode v2.1') + ")...", "color: #8C57FF; font-weight: bold; font-size: 14px;");
     
     const targetLimit = ${limit};
     let foundLinks = new Set();
@@ -170,14 +169,14 @@ const copyCrawlScript = () => {
         const showResultUI = (msg) => {
              const div = document.createElement('div');
              div.id = 'crawl-result-overlay';
-             div.style = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(2,6,23,0.9); backdrop-filter:blur(10px); color:white; padding:40px; z-index:100000; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family: sans-serif;';
-             div.innerHTML = '<div style="background:#1e293b; padding:30px; border-radius:30px; border:1px solid #334155; width:100%; max-width:500px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">' +
-                                '<h3 style="margin-bottom:10px; color:#60a5fa; font-weight:900; text-transform:uppercase; letter-spacing:-0.05em; font-style:italic;">Crawl Selesai! (' + foundLinks.size + ' Link)</h3>' +
-                                '<p style="font-size:12px; margin-bottom:20px; color:#94a3b8;">' + msg + '</p>' +
-                                '<textarea id="crawl-textarea" style="width:100%; height:200px; background:#020617; color:#60a5fa; border:1px solid #334155; border-radius:15px; padding:15px; margin-bottom:20px; font-size:12px; font-family:monospace; outline:none; resize:none;">' + result + '</textarea>' +
+             div.style = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); backdrop-filter:blur(10px); color:#3A3541; padding:40px; z-index:100000; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family: sans-serif;';
+             div.innerHTML = '<div style="background:white; padding:30px; border-radius:24px; border:1px solid #E0E0E0; width:100%; max-width:500px; box-shadow:0 10px 40px rgba(0,0,0,0.1);">' +
+                                '<h3 style="margin-bottom:10px; color:#8C57FF; font-weight:900; text-transform:uppercase; letter-spacing:0.05em;">Crawl Selesai! (' + foundLinks.size + ' Link)</h3>' +
+                                '<p style="font-size:12px; margin-bottom:20px; color:#898591;">' + msg + '</p>' +
+                                '<textarea id="crawl-textarea" style="width:100%; height:200px; background:#F4F5FA; color:#3A3541; border:1px solid #E0E0E0; border-radius:12px; padding:15px; margin-bottom:20px; font-size:12px; font-family:monospace; outline:none; resize:none;">' + result + '</textarea>' +
                                 '<div style="display:flex; gap:10px;">' +
-                                    '<button id="copyManualBtn" style="flex:1; background:#3b82f6; color:white; border:none; padding:12px; border-radius:12px; cursor:pointer; font-weight:bold; text-transform:uppercase; font-size:12px;">Copy to Clipboard</button>' +
-                                    '<button id="closeFinalCrawl" style="background:rgba(255,255,255,0.05); color:#94a3b8; border:none; padding:12px 20px; border-radius:12px; cursor:pointer; font-weight:bold; text-transform:uppercase; font-size:12px;">Close</button>' +
+                                    '<button id="copyManualBtn" style="flex:1; background:#8C57FF; color:white; border:none; padding:12px; border-radius:12px; cursor:pointer; font-weight:bold; text-transform:uppercase; font-size:12px;">Salin Ke Clipboard</button>' +
+                                    '<button id="closeFinalCrawl" style="background:#F4F5FA; color:#898591; border:none; padding:12px 20px; border-radius:12px; cursor:pointer; font-weight:bold; text-transform:uppercase; font-size:12px;">Tutup</button>' +
                                 '</div>' +
                               '</div>';
              document.body.appendChild(div);
@@ -186,17 +185,17 @@ const copyCrawlScript = () => {
                 const ta = div.querySelector('#crawl-textarea');
                 ta.select();
                 document.execCommand('copy');
-                div.querySelector('#copyManualBtn').innerText = 'Copied!';
-                setTimeout(() => div.querySelector('#copyManualBtn').innerText = 'Copy to Clipboard', 2000);
+                div.querySelector('#copyManualBtn').innerText = 'Tersalin!';
+                setTimeout(() => div.querySelector('#copyManualBtn').innerText = 'Salin Ke Clipboard', 2000);
              };
         };
 
         try { 
             await navigator.clipboard.writeText(result); 
-            showResultUI("Links successfully copied to clipboard.");
+            showResultUI("Tautan berhasil disalin ke papan klip secara otomatis.");
         } catch(e) {
             console.error("Auto-copy failed:", e);
-            showResultUI("Auto-copy failed because focus was lost. Please copy manually below:");
+            showResultUI("Salin otomatis gagal karena fokus hilang. Silakan salin manual di bawah ini:");
         }
     } else {
         alert("Tidak ditemukan link Videy.");
@@ -206,168 +205,153 @@ const copyCrawlScript = () => {
 
     navigator.clipboard.writeText(script).then(() => {
         scriptCopied.value = true;
-        toastInfo('Auto-crawl script copied to clipboard!');
+        toastInfo('Skrip auto-crawl disalin ke papan klip!');
         setTimeout(() => scriptCopied.value = false, 2000);
     }).catch(() => {
-        toastError('Failed to copy script. Please try manually.');
+        toastError('Gagal menyalin skrip. Silakan coba manual.');
     });
 };
 </script>
 
 <template>
-    <Head title="Admin - Link Extractor" />
+    <Head title="Link Extractor - Materio Royale" />
 
-    <AuthenticatedLayout>
+    <MaterioLayout>
         <template #header>
-            <div class="flex items-center justify-between gap-4 flex-wrap">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h2 class="text-2xl sm:text-3xl font-black text-white italic uppercase tracking-tight">
-                        Link <span class="text-indigo-500">Extractor</span>
-                    </h2>
-                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-widest mt-1">Alat Penemuan Konten Massal</p>
+                    <h2 class="text-2xl font-bold text-[#3A3541]">Link Extractor</h2>
+                    <p class="text-sm text-gray-500 mt-1">Alat penemuan konten massal dan ekstraksi tautan Videy.</p>
                 </div>
-                <div class="bg-indigo-500/10 px-4 py-2 rounded-xl border border-indigo-500/20">
-                    <span class="text-xs font-bold uppercase text-indigo-400 tracking-widest leading-none">Bulk Tool</span>
+                <div class="bg-[#8C57FF]/5 px-4 py-2 rounded-xl border border-[#8C57FF]/10">
+                    <span class="text-xs font-bold uppercase text-[#8C57FF] tracking-widest leading-none">Bulk Utility Tool</span>
                 </div>
             </div>
         </template>
 
-        <div class="py-6">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Input Section -->
-                    <div class="glass-dark p-5 sm:p-6 rounded-2xl border border-white/10 relative overflow-hidden group">
-                        <div class="absolute -top-12 -right-12 w-48 h-48 bg-indigo-500/5 rounded-full blur-[60px]"></div>
-                        <h3 class="text-base font-black text-white mb-6 flex items-center gap-3 uppercase tracking-tight">
-                            <span class="w-1 h-5 bg-indigo-600 rounded-full"></span>
-                            Konten Mentah (Raw)
-                        </h3>
-                        
-                        <div class="space-y-6">
-                            <!-- Crawler Helper -->
-                            <div class="p-5 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 space-y-4">
-                                <div class="flex items-center justify-between flex-wrap gap-4">
-                                    <h4 class="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                        </svg>
-                                        Script Auto-Crawl
-                                    </h4>
-                                    <div class="flex items-center gap-3 bg-black/40 px-3 py-1 rounded-full border border-white/5">
-                                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Limit</span>
-                                        <input type="number" v-model="crawlLimit" class="w-12 !bg-transparent !border-none !text-white text-xs font-black px-0 py-0 focus:ring-0 text-center" />
-                                    </div>
-                                </div>
-                                <p class="text-[10px] text-slate-400 leading-relaxed font-bold italic">
-                                    Copy - Paste script ini ke Console (F12) untuk mengumpulkan link otomatis.
-                                </p>
-                                <button @click="copyCrawlScript" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all active:scale-95">
-                                    {{ scriptCopied ? 'BERHASIL DISALIN!' : 'SALIN SKRIP CRAWL' }}
-                                </button>
-                            </div>
-
-                            <!-- Mirror Links -->
-                            <div class="flex flex-wrap gap-2">
-                                <a v-for="mirror in mirrors" :key="mirror.name" :href="mirror.url" target="_blank" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-bold text-slate-400 transition-all flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        <div class="space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Input Section -->
+                <div class="materio-card p-6 relative overflow-hidden group">
+                    <div class="absolute -top-12 -right-12 w-48 h-48 bg-[#8C57FF]/5 rounded-full blur-[60px] pointer-events-none"></div>
+                    <h3 class="text-lg font-bold text-[#3A3541] mb-6 flex items-center gap-3">
+                        <span class="w-1 h-6 bg-[#8C57FF] rounded-full"></span>
+                        Konten Mentah (Raw Text)
+                    </h3>
+                    
+                    <div class="space-y-6">
+                        <!-- Crawler Helper -->
+                        <div class="p-5 bg-[#8C57FF]/5 rounded-2xl border border-[#8C57FF]/10 space-y-4">
+                            <div class="flex items-center justify-between flex-wrap gap-4">
+                                <h4 class="text-[11px] font-bold text-[#8C57FF] uppercase tracking-widest flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                                     </svg>
-                                    {{ mirror.name }}
-                                </a>
-                            </div>
-
-                            <div class="space-y-2">
-                                <p class="text-[10px] font-bold uppercase text-slate-500 tracking-widest ml-1 italic">
-                                    Atau tempel teks manual:
-                                </p>
-                                <textarea 
-                                    v-model="rawText"
-                                    class="w-full h-40 bg-black/40 border-none rounded-2xl p-4 text-indigo-300 font-mono text-sm focus:ring-1 focus:ring-indigo-500/30 transition-all outline-none shadow-inner"
-                                    placeholder="Paste raw text here..."
-                                ></textarea>
-                            </div>
-                            
-                            <div class="flex flex-col gap-4">
-                                <div class="flex items-center gap-6">
-                                    <label class="flex items-center group cursor-pointer">
-                                        <Checkbox v-model:checked="isPremium" class="w-5 h-5 !bg-white/5 !border-none !text-indigo-600 rounded-lg" />
-                                        <span class="ms-2 text-[10px] font-bold text-slate-400 group-hover:text-white transition uppercase tracking-widest">Premium Content</span>
-                                    </label>
-                                    
-                                    <label class="flex items-center group cursor-pointer">
-                                        <Checkbox v-model:checked="autoSave" class="w-5 h-5 !bg-emerald-500/10 !border-none !text-emerald-500 rounded-lg" />
-                                        <span class="ms-2 text-[10px] font-bold uppercase tracking-widest text-emerald-500/80 group-hover:text-emerald-400 transition flex items-center gap-2 italic">
-                                            Auto Save
-                                        </span>
-                                    </label>
+                                    Skrip Auto-Crawl
+                                </h4>
+                                <div class="flex items-center gap-3 bg-white px-3 py-1 rounded-full border border-gray-100">
+                                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Limit</span>
+                                    <input type="number" v-model="crawlLimit" class="w-10 !bg-transparent !border-none !text-[#3A3541] text-xs font-bold px-0 py-0 focus:ring-0 text-center" />
                                 </div>
-                                <PrimaryButton @click="handleExtract" class="!w-full !py-3 !text-xs !rounded-xl !tracking-widest">EKSTRAKSI & PROSES</PrimaryButton>
                             </div>
+                            <p class="text-[11px] text-gray-500 leading-relaxed italic">
+                                Jalankan skrip ini di Console (F12) browser pada target situs untuk mengumpulkan link Videy secara otomatis.
+                            </p>
+                            <button @click="copyCrawlScript" class="w-full py-2.5 bg-[#8C57FF] hover:bg-[#7B47E6] text-white text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all shadow-md shadow-[#8C57FF]/20">
+                                {{ scriptCopied ? 'BERHASIL DISALIN!' : 'SALIN SKRIP CRAWL' }}
+                            </button>
+                        </div>
+
+                        <!-- Target Sources -->
+                        <div class="flex flex-wrap gap-2">
+                            <a v-for="mirror in mirrors" :key="mirror.name" :href="mirror.url" target="_blank" class="px-3 py-1.5 bg-gray-50 hover:bg-[#8C57FF]/5 border border-gray-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-[#8C57FF] transition-all flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                                {{ mirror.name }}
+                            </a>
+                        </div>
+
+                        <div class="space-y-2">
+                            <InputLabel value="Atau tempel teks manual di bawah ini:" class="!text-gray-400 !text-[11px] !font-bold !uppercase !tracking-widest italic ml-1" />
+                            <textarea 
+                                v-model="rawText"
+                                class="w-full h-44 bg-white border-gray-200 rounded-2xl p-4 text-[#3A3541] font-mono text-sm focus:ring-4 focus:ring-[#8C57FF]/10 focus:border-[#8C57FF] transition-all outline-none resize-none"
+                                placeholder="Tempel teks di sini..."
+                            ></textarea>
+                        </div>
+                        
+                        <div class="flex flex-col gap-4">
+                            <div class="flex items-center gap-6">
+                                <label class="flex items-center group cursor-pointer">
+                                    <Checkbox v-model:checked="isPremium" />
+                                    <span class="ms-2 text-[11px] font-bold text-gray-500 group-hover:text-[#3A3541] transition uppercase tracking-widest">Premium Content</span>
+                                </label>
+                                
+                                <label class="flex items-center group cursor-pointer">
+                                    <Checkbox v-model:checked="autoSave" />
+                                    <span class="ms-2 text-[11px] font-bold uppercase tracking-widest text-green-600/80 group-hover:text-green-600 transition italic flex items-center gap-1.5">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                        Auto Save
+                                    </span>
+                                </label>
+                            </div>
+                            <button @click="handleExtract" class="w-full py-3.5 bg-[#3A3541] hover:bg-[#2A2531] text-white font-bold rounded-xl transition shadow-lg text-xs uppercase tracking-widest">
+                                EKSTRAKSI & PROSES SEKARANG
+                            </button>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Results Section -->
-                    <div class="glass-dark p-5 sm:p-6 rounded-2xl border border-white/10 relative overflow-hidden flex flex-col shadow-xl">
-                        <h3 class="text-base font-black text-white mb-6 flex items-center justify-between uppercase tracking-tight">
-                            <div class="flex items-center gap-3">
-                                <span class="w-1 h-5 bg-purple-500 rounded-full"></span>
-                                Tautan Terekstraksi
-                            </div>
-                            <span v-if="extractedUrls.length" class="text-[9px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20">
-                                {{ extractedUrls.length }} FOUND
-                            </span>
-                        </h3>
-
-                        <div v-if="extractedUrls.length === 0" class="flex-1 flex flex-col items-center justify-center opacity-30 py-12">
-                            <div class="text-4xl mb-3">🔍</div>
-                            <p class="text-[10px] font-black uppercase tracking-widest text-slate-500">No links extracted</p>
+                <!-- Results Section -->
+                <div class="materio-card p-6 relative overflow-hidden flex flex-col">
+                    <h3 class="text-lg font-bold text-[#3A3541] mb-6 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="w-1 h-6 bg-green-500 rounded-full"></span>
+                            Tautan Terekstraksi
                         </div>
-                        
-                        <div v-else class="flex-1 flex flex-col h-full">
-                            <div class="flex-1 overflow-y-auto max-h-[22rem] space-y-2 pr-2 custom-scrollbar">
-                                <div v-for="(url, index) in extractedUrls" :key="index" class="bg-white/5 border border-white/5 p-3 rounded-xl flex items-center justify-between group/item hover:bg-white/[0.08] transition-all duration-200">
-                                    <div class="overflow-hidden">
-                                        <div class="text-[9px] text-indigo-400 font-bold uppercase tracking-widest mb-1 italic">#{{ index + 1 }}</div>
-                                        <div class="text-xs text-slate-300 truncate w-64 sm:w-80 font-mono group-hover:text-white transition-colors">{{ url }}</div>
-                                    </div>
-                                    <button @click="removeUrl(index)" class="p-2 text-slate-600 hover:text-red-500 transition-all active:scale-95">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
+                        <span v-if="extractedUrls.length" class="text-[10px] font-bold text-[#8C57FF] uppercase tracking-widest bg-[#8C57FF]/5 px-3 py-1 rounded-full border border-[#8C57FF]/10">
+                            {{ extractedUrls.length }} Link Ditemukan
+                        </span>
+                    </h3>
 
-                            <div class="mt-6 pt-4 border-t border-white/5">
-                                <PrimaryButton 
-                                    @click="submitBulk" 
-                                    class="!w-full !py-3 !font-black !uppercase !tracking-widest !text-[10px] italic shadow-lg shadow-indigo-600/20"
-                                    :disabled="form.processing"
-                                >
-                                    {{ form.processing ? 'MENYIMPAN...' : 'SIMPAN SEMUA KE DATABASE' }}
-                                </PrimaryButton>
+                    <div v-if="extractedUrls.length === 0" class="flex-1 flex flex-col items-center justify-center py-20">
+                        <div class="text-4xl mb-4">🔍</div>
+                        <p class="text-[11px] font-bold uppercase tracking-widest text-gray-400">Belum ada tautan terekstraksi</p>
+                    </div>
+                    
+                    <div v-else class="flex-1 flex flex-col h-full">
+                        <div class="flex-1 overflow-y-auto max-h-[25rem] space-y-2 pr-2 no-scrollbar">
+                            <div v-for="(url, index) in extractedUrls" :key="index" class="bg-gray-50 border border-gray-100 p-3.5 rounded-xl flex items-center justify-between group/item hover:bg-white hover:border-[#8C57FF]/20 hover:shadow-sm transition-all duration-300">
+                                <div class="min-w-0 pr-4">
+                                    <div class="text-[10px] text-[#8C57FF] font-bold uppercase tracking-widest mb-0.5 italic opacity-60">#{{ index + 1 }}</div>
+                                    <div class="text-xs text-[#3A3541] font-mono truncate">{{ url }}</div>
+                                </div>
+                                <button @click="removeUrl(index)" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
                             </div>
+                        </div>
+
+                        <div class="mt-6 pt-6 border-t border-gray-100">
+                            <button 
+                                @click="submitBulk" 
+                                class="w-full py-4 bg-[#8C57FF] hover:bg-[#7B47E6] text-white font-bold rounded-xl transition shadow-lg shadow-[#8C57FF]/25 text-xs uppercase tracking-widest disabled:opacity-50"
+                                :disabled="form.processing"
+                            >
+                                {{ form.processing ? 'MENYIMPAN DATA...' : 'SIMPAN SEMUA KE DATABASE' }}
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </AuthenticatedLayout>
+    </MaterioLayout>
 </template>
 
 <style scoped>
-.glass-dark {
-    background: rgba(15, 23, 42, 0.8);
-    backdrop-filter: blur(12px);
-}
-.custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 99px;
-}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>

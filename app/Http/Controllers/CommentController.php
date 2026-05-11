@@ -21,6 +21,7 @@ class CommentController extends Controller
     {
         $request->validate([
             'content' => 'required|string|max:1000',
+            'parent_id' => 'nullable|exists:comments,id',
         ]);
 
         if (!$this->filter->isClean($request->input('content'))) {
@@ -30,6 +31,7 @@ class CommentController extends Controller
         Comment::create([
             'user_id' => Auth::id(),
             'video_id' => $video->id,
+            'parent_id' => $request->input('parent_id'),
             'content' => $request->input('content'),
         ]);
 

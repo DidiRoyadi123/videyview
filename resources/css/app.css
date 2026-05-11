@@ -7,6 +7,15 @@
         --brand-primary: 99 102 241; /* Indigo 500 */
         --brand-secondary: 139 92 246; /* Violet 500 */
         
+        /* Materio-Inspired Tokens (v8.2) */
+        --materio-primary: 140 87 255; /* #8C57FF */
+        --materio-bg: 244 245 250; /* #F4F5FA */
+        --materio-surface: 255 255 255;
+        --materio-text: 58 53 65; /* #3A3541 */
+        --materio-text-muted: 137 133 145;
+        --materio-border: 224 224 224;
+        --materio-shadow: rgba(58, 53, 65, 0.1);
+        
         /* Dark Mode Defaults (VideyView Signature) */
         --bg-main: 2 6 23; /* slate-950 */
         --bg-surface: 15 23 42; /* slate-900 */
@@ -44,6 +53,17 @@
         color: rgb(var(--text-main));
         @apply antialiased transition-colors duration-500;
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    [data-theme="materio"] {
+        --bg-main: var(--materio-bg);
+        --bg-surface: var(--materio-surface);
+        --text-main: var(--materio-text);
+        --text-muted: var(--materio-text-muted);
+        --border-main: var(--materio-border);
+        --brand-primary: var(--materio-primary);
+        --card-bg: var(--materio-surface);
+        --glass-bg: var(--materio-surface);
     }
 }
 
